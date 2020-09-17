@@ -1,10 +1,10 @@
 <?php
 /*
 Plugin Name: WP NET Init
-Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
+Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled by a scheduled task.
 Author: WP NET
 Author URI: https://wpnet.nz
-Version: 1.2.3
+Version: 1.2.4
 */
 
 if ( !defined('ABSPATH') ) {
