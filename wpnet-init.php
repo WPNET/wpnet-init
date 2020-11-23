@@ -1,10 +1,10 @@
 <?php
 /*
 Plugin Name: WP NET Init
-Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled by a scheduled task.
+Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
 Author: WP NET
 Author URI: https://wpnet.nz
-Version: 1.2.4
+Version: 1.2.8
 */
 
 if ( !defined('ABSPATH') ) {
@@ -96,7 +96,7 @@ $WPNET_Init = new WPNET_Init();
 class WPNET_WP_Admin_Branding {
     public function __construct() {
         add_filter( 'admin_footer_text', array( $this, 'wpnet_dashboard_footer' ) ); // add the WP NET branding to the WP Admin footer
-        add_filter( 'all_plugins', array($this, 'wpnet_plugin_branding' ) ); // brand the IWP Client
+        add_filter( 'all_plugins', array($this, 'wpnet_plugin_branding' ) ); // brand IWP Client + SpinupWP
         if ( ! defined( 'WPNET_ANNOUNCEMENTS_WIDGET_DISABLE' ) || WPNET_ANNOUNCEMENTS_WIDGET_DISABLE == false ) {
             if ( is_main_site() && is_multisite() ) {
                 add_action( 'wp_network_dashboard_setup', array( $this, 'setup_announcements_widget' ) ); // add the Announcements RSS Widget
@@ -123,7 +123,7 @@ class WPNET_WP_Admin_Branding {
         echo '<span id="footer-thankyou" style="font-style:normal"><a target="_blank" href="https://wpnet.nz" title="Hosted on WP NET - Managed WordPress Hosting &amp; Support"><img style="vertical-align:bottom;" src="'. WPNET_LOGO_SMALL .'"></a> &#8211; Managed WordPress Hosting &amp; Support</span>';
     }
     public function wpnet_plugin_branding( $plugins_list ) {
-        // brand IWP Client plugin
+        // Brand IWP Client plugin
         if ( isset( $plugins_list['iwp-client/init.php'] ) ) {
             $plugin_info_original = $plugins_list['iwp-client/init.php'];
             $plugin_info_new  = array(
@@ -137,6 +137,21 @@ class WPNET_WP_Admin_Branding {
                 'hide'        => false,
             );
             $plugins_list['iwp-client/init.php'] = array_merge($plugin_info_original, $plugin_info_new);
+        }
+        // Brand SpinupWP plugin
+        if ( isset( $plugins_list['spinupwp/spinupwp.php'] ) ) {
+            $plugin_info_original = $plugins_list['spinupwp/spinupwp.php'];
+            $plugin_info_new  = array(
+                'Name'        => 'Cache Control',
+                'Title'       => 'Cache Control',
+                'Author'      => 'WP NET',
+                'AuthorName'  => 'WP NET',
+                'AuthorURI'   => 'https://wpnet.nz',
+                'PluginURI'   => 'https://wpnet.nz',
+                'Description' => "Creates a WP Admin Menu item for 'Cache'. Options include: 'Purge Page Cache' (Nginx), 'Purge Object Cache' (Redis). If a cache type is inactive, it will not display in the menu.",
+                'slug'        => null
+            );
+            $plugins_list['spinupwp/spinupwp.php'] = array_merge($plugin_info_original, $plugin_info_new);
         }
         return $plugins_list;
         }
@@ -231,7 +246,7 @@ class WPNET_IWP_Client_Activation {
             $sitename        = htmlspecialchars_decode( get_bloginfo('name') );
             $admins          = get_users( array('role' => 'administrator') );
             $admin_username  = ( username_exists('wpnadmin') ) ? 'wpnadmin' : $admins[0]->user_login;
-            $email_headers[] = 'From: WP NET Administrator <admin@wpnet.nz>';
+            // $email_headers[] = 'From: WP NET Administrator <admin@wpnet.nz>';
             $message         = "SITE: $sitename ($home_url)\n\nSERVER: $server\n\nACTIVATION KEY:\n\n$wp_admin_url|^|$admin_username|^|$activationKey";
             wp_mail( 'admin@wpnet.nz', "IWP ACTIVATION: $sitename", $message, $email_headers );
             update_option( 'wpnet_iwp_auth_delay', strtotime('+1 day') );
