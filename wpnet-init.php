@@ -4,7 +4,7 @@ Plugin Name: WP NET Init
 Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
 Author: WP NET
 Author URI: https://wpnet.nz
-Version: 1.2.8
+Version: 1.2.9
 */
 
 if ( !defined('ABSPATH') ) {
@@ -20,22 +20,13 @@ define( 'WPNET_INIT_PLUGIN_VERSION', $wp_init_data['Version'] );
 // Initialises some common functions and loads other plugins
 class WPNET_Init {
     public function __construct() {
-        // Load the Force Strong Passwords plugin
-        @include_once WPMU_PLUGIN_DIR . '/force-strong-passwords/slt-force-strong-passwords.php';
-        add_filter( 'slt_fsp_error_message', array( $this, 'force_strong_passwords_error_msg' ) );
         add_filter( 'pre_comment_content', array( $this, 'block_long_comment' ), 9999 );
         add_filter( 'admin_bar_menu', array( $this, 'replace_howdy' ), 25 );
-        add_filter( 'login_errors', array( $this, 'set_login_error_msg' ), 9999 );
-        // Disable core update emails notifications
-        add_filter( 'auto_core_update_send_email', '__return_false', 9999 );
-        add_filter( 'send_core_update_notification_email', '__return_false', 9999 );
-        // Disable XML-RPC
-        add_filter( 'xmlrpc_enabled', '__return_false' );
+        add_filter( 'xmlrpc_enabled', '__return_false' ); // Disable XML-RPC
         add_action( 'init', array( $this, 'super_cache_flush_all' ) );
-    }
-    // Change the odd error reponse for Force Strong Passwords
-    public function force_strong_passwords_error_msg() {
-        return '<strong>ERROR</strong>: You MUST create a <strong><em>strong</em></strong> password. Your password has <strong>not</strong> been changed. Please try again.';
+        // Disable core update emails notifications
+        // add_filter( 'auto_core_update_send_email', '__return_false', 9999 );
+        // add_filter( 'send_core_update_notification_email', '__return_false', 9999 );
     }
     // As a security precaution, block comments that are too long
     public function block_long_comment( $text ) {
@@ -56,9 +47,6 @@ class WPNET_Init {
             'id'    => 'my-account',
             'title' => $newtitle
         ) );
-    }
-    public function set_login_error_msg() {
-        return 'Incorrect username or password. Repeated failed attempts will result in a ban.';
     }
     // The WP Super Cache WP Admin Bar "Delete Cache" button is very confusing!
     // When in the WP Admin it deletes the entire cache, but on the front-end it only deletes the currently viewed page.
@@ -381,13 +369,13 @@ if ( is_admin() || is_network_admin() ) {
             switch ( PHP_VERSION ) {
             	case 5.6:
             	case 7.0:
+                case 7.1:
+                case 7.2:
             		$php_version_notice = '<span class="red hint--bottom-left hint--rounded hint--bounce" aria-label="This PHP version is unsupported. Contact WP NET about updating PHP."> v' . $phpversion . '</span>';
             		break;
-            	case 7.1:
-            		$php_version_notice = '<span class="orange hint--bottom-left hint--rounded hint--bounce" aria-label="WordPress recommends PHP 7.2. Contact WP NET about updating PHP."> v' . $phpversion . '</span>';
+                case 7.3:
+            		$php_version_notice = '<span class="orange hint--bottom-left hint--rounded hint--bounce" aria-label="WordPress recommends PHP 7.4. Contact WP NET about updating PHP."> v' . $phpversion . '</span>';
             		break;
-            	case 7.2:
-            	case 7.3:
                 case 7.4:
             		$php_version_notice = '<span class="green hint--bottom-left hint--rounded hint--bounce" aria-label="You are running a recommended version of PHP"> v' . $phpversion . '</span>';
             		break;
