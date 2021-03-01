@@ -4,7 +4,7 @@ Plugin Name: WP NET Init
 Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
 Author: WP NET
 Author URI: https://wpnet.nz
-Version: 1.2.9
+Version: 1.2.10
 */
 
 if ( !defined('ABSPATH') ) {
@@ -379,6 +379,9 @@ if ( is_admin() || is_network_admin() ) {
                 case 7.4:
             		$php_version_notice = '<span class="green hint--bottom-left hint--rounded hint--bounce" aria-label="You are running a recommended version of PHP"> v' . $phpversion . '</span>';
             		break;
+                case (preg_match('/8\..*/', PHP_VERSION) ? true : false) :
+                    $php_version_notice = '<span class="red hint--bottom-left hint--rounded hint--bounce" aria-label="PHP 8 is not fully supported by WordPress. Use for testing purposes only."> v' . $phpversion . '</span>';
+                    break;                    
             	default:
             		$php_version_notice = '<span class="hint--bottom-left hint--rounded hint--bounce" aria-label="Error reading PHP version"><span class="red dashicons dashicons-warning"></span>Unknown</span>';
             }
