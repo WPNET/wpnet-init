@@ -4,7 +4,7 @@ Plugin Name: WP NET Init
 Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
 Author: WP NET
 Author URI: https://wpnet.nz
-Version: 1.2.10
+Version: 1.2.11
 */
 
 if ( !defined('ABSPATH') ) {
@@ -108,7 +108,7 @@ class WPNET_WP_Admin_Branding {
         wp_add_inline_style( 'dashboard', $custom_css );
     }
     public function wpnet_dashboard_footer() {
-        echo '<span id="footer-thankyou" style="font-style:normal"><a target="_blank" href="https://wpnet.nz" title="Hosted on WP NET - Managed WordPress Hosting &amp; Support"><img style="vertical-align:bottom;" src="'. WPNET_LOGO_SMALL .'"></a> &#8211; Managed WordPress Hosting &amp; Support</span>';
+        echo '<span id="footer-thankyou" style="font-style:normal"><a target="_blank" href="https://wpnet.nz" title="Hosted on WP NET - WordPress Hosting &amp; Support"><img style="vertical-align:bottom;" src="'. WPNET_LOGO_SMALL .'"></a> &#8211; WordPress Hosting &amp; Support</span>';
     }
     public function wpnet_plugin_branding( $plugins_list ) {
         // Brand IWP Client plugin
