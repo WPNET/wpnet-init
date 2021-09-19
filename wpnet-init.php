@@ -4,7 +4,7 @@ Plugin Name: WP NET Init
 Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
 Author: WP NET
 Author URI: https://wpnet.nz
-Version: 1.2.12
+Version: 1.2.14
 */
 
 if ( !defined('ABSPATH') ) {
@@ -117,7 +117,7 @@ class WPNET_WP_Admin_Branding {
             $plugin_info_new  = array(
                 'Name'        => 'WP NET Client',
                 'Title'       => 'WP NET Client',
-                'Description' => 'WP NET Client Management plugin. If you deactivate or remove this plugin it will be automatically reinstalled during routine maintenance. Status: <strong>DISCONNECTED</strong>.',
+                'Description' => 'WP NET Client plugin. If you deactivate or remove this plugin it will be automatically reinstalled. Status: <strong>DISCONNECTED</strong>',
                 'Author'      => 'WP NET',
                 'AuthorName'  => 'WP NET',
                 'AuthorURI'   => 'https://wpnet.nz',
@@ -197,8 +197,6 @@ class WPNET_IWP_Client_Activation {
         if ( ( defined( 'DOING_AJAX' ) && DOING_AJAX ) && ( isset( $_POST['action'] ) && false !== strpos( $_POST['action'], 'wpmdb' ) ) ) {
             return;
         } else {
-            add_action( 'init', array( $this, 'iwp_activate_client' ) );
-            // Is client IWP client connected?
             if ( class_exists('IWP_MMB_Core') && get_option( 'iwp_client_activate_key', null ) && !get_option( 'iwp_client_public_key', null ) ) {
                 add_action( 'init', array( $this, 'iwp_connect_client' ) );
             }
@@ -206,18 +204,7 @@ class WPNET_IWP_Client_Activation {
         register_deactivation_hook( 'iwp-client/init.php', array( $this, 'iwp_reset_activation_delay' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'iwp_hide_notice_css' ), 1 );
     }
-    // If IWP Client is installed, activate it and send the activation key
-    public function iwp_activate_client() {
-        include_once ABSPATH . 'wp-admin/includes/plugin.php';
-        if ( function_exists( 'is_plugin_active' ) ) {
-            if ( !is_plugin_active( 'iwp-client/init.php' ) ) {
-                $iwp_activated = activate_plugin( 'iwp-client/init.php' );
-                if ( !is_wp_error( $iwp_activated ) ) {
-                    $this->iwp_send_key();
-                }
-            }
-        }
-    }
+
     // Check the IWP Client activation key
     public function iwp_connect_client(){
          // if iwp_auth_delay timer expired, send key
