@@ -4,7 +4,7 @@ Plugin Name: WP NET Init
 Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
 Author: WP NET
 Author URI: https://wpnet.nz
-Version: 1.3.1
+Version: 1.4.0
 */
 
 if ( !defined('ABSPATH') ) {
@@ -86,9 +86,18 @@ class WPNET_WP_Admin_Branding {
         add_filter( 'admin_footer_text', array( $this, 'wpnet_dashboard_footer' ) ); // add the WP NET branding to the WP Admin footer
         add_filter( 'all_plugins', array($this, 'wpnet_plugin_branding' ) ); // brand IWP Client + SpinupWP
         define( 'WPNET_LOGO_SMALL', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAASCAYAAAAHWr00AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAABQVJREFUeNrkV1toHFUYPnPZTZtUm2pMQlswtJW2WLPRXIx90IqCooIW6ouKSAUVQcEHfRG0LYIX+tYXKz5IjeKDEC/4YF9ispXYSExtLGjrrbYIbdo0t232MjPH75/9x/3n7Gwukjd/+HbnXOac8/3XM9bQ0NANk5OTrm3biuUyUFRxaQIcIAA84IoxngKaAVrEAnzgKjAFaJrge55qbm21tnX2NPqBtsNZFZkO19X8dllov0a1EqLLf411zrTb19d3YHx8fE8qlYqGXwXeE9OvB4aBa5lwAdgF/Cnm7AEOGYTngQlgDOgrFgoD7T29qy6UWo6en8mtd+0Y4wHgCYPwrcDnK8JX07JaH965+SEXRH9Ip9PPCcJ3G4R3AFuMNToNwrtYMaZs5IPvtbR+xXHdg5eL3saLea81FSf8OHAYhLOCcD2wfiUIB5osoVVJqzRZZIitEUkHu1MkPQlr3GG0b1vCvm8BvY5lzZF1nWrsN9pFJ3neshHtB13aLg7xK3AayPDBNgNtwG/c7k04vFQCxe5W0SbLPwXcBLwNXMf9pNxHOSSShDzrPuBrbvvGOMX5i5wbasnzvE4kHwP9IpJ/cXnh44Iw+XY3E65jlzTlFnZhSnA3A9eIsW+AQUYb54RI2ihheYGWJNaK5LIPZjhaSTMxyQNHFvGieyVhGHXUtqxP5QSX/7PAM6J/J/AJsAm4kfuuctJaw9lzB5PqNjbNiue1csCyrPnW+pQOvLSCa1Mm+RK/XWC3jQn3ovsRHLJfI9ME8XUb8M5j+J8VfT8DZyqxqtNauNNMya+bLfmxTBgRHmFLR7HbLeI5qlcngRxwj4jbQSOeaY0TwO3AnZSsKsbTtNBY+7r6zIa0A+1ryp4ziKyDytLvi4z6OhTTX1auNLRFiv7IUO4+YH91DbJUCpobv5JTUwUf8VsZjR5/51iOhGIybVjvBLu+dGvHiOfT7AnHgHc400r3/QyEVgdkPR1mzw2+0kfwf5bbdNyMHwS7g0DPRH1laOVXI5Dtyrrl51Bd8Xr/r4U9JhMln3Xssh1i7ihwQbS38LgsHd8Dk9XbhHu/QEotBDqd9wOKL3Lxemi8pAP1ZqD0u8LKr8EDntUqVpk1XPqSEd+zsfITvlse9mBhT1enAlc8U3l6UrTv50wrLTzB69pcYx9IiF9f4BIr8hBcdwBabzg+MafOTefCUoEzaSKOc30Ay7wEKluZXgfG9qKfvKWB157A3C4rTjJvEg50RUNkdZc2qUH4O0GG5GG+Uiq+Sp7hGD7HiawFeNAgPMqu28m1/aK0Am1cwomKQYCNLBFxYal6A40PhW88Lc4S8flbV5erSpRXta1yp04mTIT+4Doc3aaiJHaKiZD8yIQpPrvE++epznF4/FTzUGVXDmEckqrCy+hoTzhb1G7H/DnRR3f+s8u5ddnGyzIpOUZsSk9ImjO6yKVgMSFFHVhgvImrySmBLwwOyyIcxXGSDIvnkRpzji3xy8WiXFIDqL9qZIFxF0gJrFpgLiG2V+gm+Xxe5XI5xR8PwzWOOSaeyV1LfCOT8u1CPEuFgqK9Slo7JcSwLjuzYyiDQpvq6lf/0UvspDZ/LZUTWjabVfgeVvw97PKFQZIpiOwbyV0cw4FIKIMJ39GVG4nvq6bmFnvN9kym4AV1HMJTfFuSdwbFucFdAsF5zimRbOK7fSR/hYmOM/f2xtVkcq3+T/KPAAMAZkAPvShYUOUAAAAASUVORK5CYII=');
+        add_action( 'admin_enqueue_scripts', array( $this, 'iwp_hide_notice_css' ), 1 );
     }
     public function wpnet_dashboard_footer() {
         echo '<span id="footer-thankyou" style="font-style:normal"><a target="_blank" href="https://wpnet.nz" title="Hosted on WP NET - WordPress Hosting &amp; Support"><img style="vertical-align:bottom;" src="'. WPNET_LOGO_SMALL .'"></a> &#8211; WordPress Hosting &amp; Support</span>';
+    }
+    // CSS to hide the IWP Client notice (it's a bit naughty)
+    public function iwp_hide_notice_css() {
+        $custom_css = "
+                    body.wp-admin #wpbody .updated[style*=\"text-align: center; display:block !important;\"] {visibility:hidden}
+                    body.wp-admin #wpbody .updated[style*=\"text-align: center; display:block !important;\"] * {display:none !important}
+                    ";
+        wp_add_inline_style( 'common', $custom_css );
     }
     public function wpnet_plugin_branding( $plugins_list ) {
         // Brand IWP Client plugin
@@ -127,61 +136,6 @@ class WPNET_WP_Admin_Branding {
 global $WPNET_WP_Admin_Branding;
 $WPNET_WP_Admin_Branding = new WPNET_WP_Admin_Branding();
 /*=====  End of BRANDING  ======*/
-
-/*====================================================
-=                     IWP CLIENT                     =
-====================================================*/
-class WPNET_IWP_Client_Activation {
-    public function __construct() {
-        // Check for WP Migrate DB AJAX request
-        if ( ( defined( 'DOING_AJAX' ) && DOING_AJAX ) && ( isset( $_POST['action'] ) && false !== strpos( $_POST['action'], 'wpmdb' ) ) ) {
-            return;
-        } else {
-            if ( class_exists('IWP_MMB_Core') && get_option( 'iwp_client_activate_key', null ) && !get_option( 'iwp_client_public_key', null ) ) {
-                add_action( 'init', array( $this, 'iwp_connect_client' ) );
-            }
-        }
-        register_deactivation_hook( 'iwp-client/init.php', array( $this, 'iwp_reset_activation_delay' ) );
-        add_action( 'admin_enqueue_scripts', array( $this, 'iwp_hide_notice_css' ), 1 );
-    }
-
-    // Check the IWP Client activation key
-    public function iwp_connect_client(){
-         // if iwp_auth_delay timer expired, send key
-        if ( strtotime('now') >= get_option( 'wpnet_iwp_auth_delay', 0 ) && is_main_site() ) {
-            $this->iwp_send_key();
-        }
-    }
-    // Send the IWP activation key to WP NET
-    public function iwp_send_key() {
-        if ( class_exists( 'IWP_MMB_Core' ) && ( $activationKey = get_option( 'iwp_client_activate_key', null ) ) && is_main_site() ) {
-            $home_url        = get_bloginfo('url');
-            $wp_admin_url    = admin_url();
-            $server          = $_SERVER['SERVER_ADDR'];
-            $sitename        = htmlspecialchars_decode( get_bloginfo('name') );
-            $admins          = get_users( array('role' => 'administrator') );
-            $admin_username  = ( username_exists('wpnadmin') ) ? 'wpnadmin' : $admins[0]->user_login;
-            // $email_headers[] = 'From: WP NET Administrator <admin@wpnet.nz>';
-            $message         = "SITE: $sitename ($home_url)\n\nSERVER: $server\n\nACTIVATION KEY:\n\n$wp_admin_url|^|$admin_username|^|$activationKey";
-            wp_mail( 'admin@wpnet.nz', "IWP ACTIVATION: $sitename", $message, $email_headers );
-            update_option( 'wpnet_iwp_auth_delay', strtotime('+1 day') );
-        }
-    }
-    public function iwp_reset_activation_delay() {
-        update_option( 'wpnet_iwp_auth_delay', 0 );
-    }
-    // CSS to hide the IWP Client notice (it's a bit naughty)
-    public function iwp_hide_notice_css() {
-        $custom_css = "
-                    body.wp-admin #wpbody .updated[style*=\"text-align: center; display:block !important;\"] {visibility:hidden}
-                    body.wp-admin #wpbody .updated[style*=\"text-align: center; display:block !important;\"] * {display:none !important}
-                    ";
-        wp_add_inline_style( 'common', $custom_css );
-    }
-}
-global $WPNET_IWP_Client_Activation;
-$WPNET_IWP_Client_Activation = new WPNET_IWP_Client_Activation();
-/*=====  End of IWP CLIENT  ======*/
 
 /*====================================================
 =            WP NET Dashboard Info Widget            =
