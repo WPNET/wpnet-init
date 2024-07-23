@@ -4,7 +4,7 @@ Plugin Name: WP NET Init
 Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
 Author: WP NET
 Author URI: https://wpnet.nz
-Version: 1.4.3
+Version: 1.4.4
 */
 
 if ( !defined('ABSPATH') ) {
@@ -21,7 +21,6 @@ define( 'WPNET_INIT_PLUGIN_VERSION', $wp_init_data['Version'] );
 class WPNET_Init {
     public function __construct() {
         add_filter( 'pre_comment_content', array( $this, 'block_long_comment' ), 9999 );
-        add_filter( 'admin_bar_menu', array( $this, 'replace_howdy' ), 25 );
         add_filter( 'xmlrpc_enabled', '__return_false' ); // Disable XML-RPC
         add_action( 'init', array( $this, 'super_cache_flush_all' ) );
         // Disable core update emails notifications
@@ -38,15 +37,6 @@ class WPNET_Init {
             );
         }
         return $text;
-    }
-    // Replace the "Howdy" salutation, cuz we're not cowboys
-    public function replace_howdy( $wp_admin_bar ) {
-        $my_account = $wp_admin_bar->get_node('my-account');
-        $newtitle   = str_replace( 'Howdy,', 'Logged in as', $my_account->title );
-        $wp_admin_bar->add_node( array(
-            'id'    => 'my-account',
-            'title' => $newtitle
-        ) );
     }
     // The WP Super Cache WP Admin Bar "Delete Cache" button is very confusing!
     // When in the WP Admin it deletes the entire cache, but on the front-end it only deletes the currently viewed page.
