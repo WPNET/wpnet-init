@@ -4,7 +4,7 @@ Plugin Name: WP NET Init
 Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
 Author: WP NET
 Author URI: https://wpnet.nz
-Version: 1.4.4
+Version: 1.5.0
 */
 
 if ( !defined('ABSPATH') ) {
@@ -75,8 +75,28 @@ class WPNET_WP_Admin_Branding {
     public function __construct() {
         add_filter( 'admin_footer_text', array( $this, 'wpnet_dashboard_footer' ) ); // add the WP NET branding to the WP Admin footer
         add_filter( 'all_plugins', array($this, 'wpnet_plugin_branding' ) ); // brand IWP Client + SpinupWP
+        if ( ! defined( 'WPNET_ANNOUNCEMENTS_WIDGET_DISABLE' ) || WPNET_ANNOUNCEMENTS_WIDGET_DISABLE == false ) {
+            if ( is_main_site() && is_multisite() ) {
+                add_action( 'wp_network_dashboard_setup', array( $this, 'setup_announcements_widget' ) ); // add the Announcements RSS Widget
+            } elseif ( ! defined( 'WPNET_ANNOUNCEMENTS_WIDGET_WPMU_DISABLE' ) || WPNET_ANNOUNCEMENTS_WIDGET_WPMU_DISABLE == false || ! is_multisite() ) {
+                add_action( 'wp_dashboard_setup', array( $this, 'setup_announcements_widget' ) ); // add the Announcements RSS Widget
+            }
+        }
         define( 'WPNET_LOGO_SMALL', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAASCAYAAAAHWr00AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAABQVJREFUeNrkV1toHFUYPnPZTZtUm2pMQlswtJW2WLPRXIx90IqCooIW6ouKSAUVQcEHfRG0LYIX+tYXKz5IjeKDEC/4YF9ispXYSExtLGjrrbYIbdo0t232MjPH75/9x/3n7Gwukjd/+HbnXOac8/3XM9bQ0NANk5OTrm3biuUyUFRxaQIcIAA84IoxngKaAVrEAnzgKjAFaJrge55qbm21tnX2NPqBtsNZFZkO19X8dllov0a1EqLLf411zrTb19d3YHx8fE8qlYqGXwXeE9OvB4aBa5lwAdgF/Cnm7AEOGYTngQlgDOgrFgoD7T29qy6UWo6en8mtd+0Y4wHgCYPwrcDnK8JX07JaH965+SEXRH9Ip9PPCcJ3G4R3AFuMNToNwrtYMaZs5IPvtbR+xXHdg5eL3saLea81FSf8OHAYhLOCcD2wfiUIB5osoVVJqzRZZIitEUkHu1MkPQlr3GG0b1vCvm8BvY5lzZF1nWrsN9pFJ3neshHtB13aLg7xK3AayPDBNgNtwG/c7k04vFQCxe5W0SbLPwXcBLwNXMf9pNxHOSSShDzrPuBrbvvGOMX5i5wbasnzvE4kHwP9IpJ/cXnh44Iw+XY3E65jlzTlFnZhSnA3A9eIsW+AQUYb54RI2ihheYGWJNaK5LIPZjhaSTMxyQNHFvGieyVhGHXUtqxP5QSX/7PAM6J/J/AJsAm4kfuuctJaw9lzB5PqNjbNiue1csCyrPnW+pQOvLSCa1Mm+RK/XWC3jQn3ovsRHLJfI9ME8XUb8M5j+J8VfT8DZyqxqtNauNNMya+bLfmxTBgRHmFLR7HbLeI5qlcngRxwj4jbQSOeaY0TwO3AnZSsKsbTtNBY+7r6zIa0A+1ryp4ziKyDytLvi4z6OhTTX1auNLRFiv7IUO4+YH91DbJUCpobv5JTUwUf8VsZjR5/51iOhGIybVjvBLu+dGvHiOfT7AnHgHc400r3/QyEVgdkPR1mzw2+0kfwf5bbdNyMHwS7g0DPRH1laOVXI5Dtyrrl51Bd8Xr/r4U9JhMln3Xssh1i7ihwQbS38LgsHd8Dk9XbhHu/QEotBDqd9wOKL3Lxemi8pAP1ZqD0u8LKr8EDntUqVpk1XPqSEd+zsfITvlse9mBhT1enAlc8U3l6UrTv50wrLTzB69pcYx9IiF9f4BIr8hBcdwBabzg+MafOTefCUoEzaSKOc30Ay7wEKluZXgfG9qKfvKWB157A3C4rTjJvEg50RUNkdZc2qUH4O0GG5GG+Uiq+Sp7hGD7HiawFeNAgPMqu28m1/aK0Am1cwomKQYCNLBFxYal6A40PhW88Lc4S8flbV5erSpRXta1yp04mTIT+4Doc3aaiJHaKiZD8yIQpPrvE++epznF4/FTzUGVXDmEckqrCy+hoTzhb1G7H/DnRR3f+s8u5ddnGyzIpOUZsSk9ImjO6yKVgMSFFHVhgvImrySmBLwwOyyIcxXGSDIvnkRpzji3xy8WiXFIDqL9qZIFxF0gJrFpgLiG2V+gm+Xxe5XI5xR8PwzWOOSaeyV1LfCOT8u1CPEuFgqK9Slo7JcSwLjuzYyiDQpvq6lf/0UvspDZ/LZUTWjabVfgeVvw97PKFQZIpiOwbyV0cw4FIKIMJ39GVG4nvq6bmFnvN9kym4AV1HMJTfFuSdwbFucFdAsF5zimRbOK7fSR/hYmOM/f2xtVkcq3+T/KPAAMAZkAPvShYUOUAAAAASUVORK5CYII=');
         add_action( 'admin_enqueue_scripts', array( $this, 'iwp_hide_notice_css' ), 1 );
+    }
+    public function setup_announcements_widget() {
+        wp_add_dashboard_widget( 'wpnet_announcements_rss', 'WP NET - Announcements', array( $this, 'announcements_dashboard_widget' ) );
+        add_action( 'admin_enqueue_scripts', array( $this, 'announcements_widget_css' ) );
+    }
+    // Add CSS for the Widget
+    public function announcements_widget_css() {
+        $custom_css = "
+                    #wpnet_announcements_rss ul {margin-bottom:0}
+                    #wpnet_announcements_rss ul li {list-style-position: outside; list-style-type:none; margin-left:1em}
+                    #wpnet_announcements_rss ul li span {margin-left:-1.15em}
+                    ";
+        wp_add_inline_style( 'dashboard', $custom_css );
     }
     public function wpnet_dashboard_footer() {
         echo '<span id="footer-thankyou" style="font-style:normal"><a target="_blank" href="https://wpnet.nz" title="Hosted on WP NET - WordPress Hosting &amp; Support"><img style="vertical-align:bottom;" src="'. WPNET_LOGO_SMALL .'"></a> &#8211; WordPress Hosting &amp; Support</span>';
@@ -121,6 +141,46 @@ class WPNET_WP_Admin_Branding {
             $plugins_list['spinupwp/spinupwp.php'] = array_merge($plugin_info_original, $plugin_info_new);
         }
         return $plugins_list;
+        }
+        // Output the Announcements RSS Feed Widget
+        public function announcements_dashboard_widget() {
+            include_once( ABSPATH . WPINC . '/feed.php' );
+            $rss = fetch_feed( 'http://feeds.wpnet.nz/wpnetannouncements' );
+            if ( !is_wp_error( $rss ) ) {
+                $maxitems  = $rss->get_item_quantity(5);
+                $rss_items = $rss->get_items(0, $maxitems);
+            } else {
+                if ( is_admin() || current_user_can('manage_options') ) {
+                    echo '<p>';
+                    printf( '<strong>RSS Error</strong>: %s', $rss->get_error_message() );
+                    echo '</p>';
+                } else {
+                    echo '<p>';
+                    echo 'An error has occurred. RSS feed could not be created.';
+                    echo '</p>';
+                }
+                return;
+            }?>
+            <ul>
+            <?php if ( $maxitems == 0 ) {
+                echo '<li>No announcements to display.</li>';
+                $rss->__destruct();
+                unset($rss);
+            } else {
+                // Loop through each feed item and display each item as a hyperlink.
+                foreach ( $rss_items as $item ) : ?>
+                <li>
+                    <span style="color:#999" class="dashicons dashicons-arrow-right"></span><a href='<?php echo esc_url( $item->get_permalink() ); ?>'
+                    title='<?php echo 'Posted '.$item->get_date('j F Y | g:i a'); ?>' target='_blank'><strong>
+                    <?php echo esc_html( $item->get_title() ); ?></a></strong>
+                    <?php // echo $item->get_content(); ?>
+                </li>
+                <?php endforeach; ?>
+                </ul>
+                <?php
+                $rss->__destruct();
+                unset( $rss );
+            }
         }
 }
 global $WPNET_WP_Admin_Branding;
