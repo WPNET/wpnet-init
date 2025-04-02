@@ -4,7 +4,7 @@ Plugin Name: WP NET Init
 Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
 Author: WP NET
 Author URI: https://wpnet.nz
-Version: 1.5.2
+Version: 1.5.3
 */
 
 if ( !defined('ABSPATH') ) {
@@ -300,14 +300,14 @@ if ( is_admin() || is_network_admin() ) {
             }
             // Test PHP version
             $php_version_notice = '<span class="red hint--top-left hint--rounded hint--bounce" aria-label="Error reading PHP version"><span class="red dashicons dashicons-warning"></span>ERROR</span>';
-            if ( version_compare(PHP_VERSION, '8.2', '>=') ) {
+            if ( version_compare(PHP_VERSION, '8.3', '>=') ) {
                 $php_version_notice = '<span class="red hint--bottom-left hint--error hint--rounded hint--bounce hint--large" aria-label="PHP '. PHP_VERSION .' support is in BETA. Not recommended - use for testing only!"><span class="red dashicons dashicons-warning"></span>' . PHP_VERSION . '</span>';
             }
-            if ( version_compare(PHP_VERSION, '8', '>=') && version_compare(PHP_VERSION, '8.2', '<') ) {
+            if ( version_compare(PHP_VERSION, '8', '>=') && version_compare(PHP_VERSION, '8.3', '<') ) {
                 $php_version_notice = '<span class="orange hint--bottom-left hint--rounded hint--bounce hint--large" aria-label="WordPress core is compatible with PHP ' . PHP_VERSION . ', but some plugins and themes may not be. Test your site carefully. Contact WP NET Support for help."><span class="orange dashicons dashicons-warning"></span>' . PHP_VERSION . '</span>';
             }     
             if ( version_compare(PHP_VERSION, '7.4', '>=') && version_compare(PHP_VERSION, '8', '<') ) {
-                $php_version_notice = '<span class="orange hint--bottom-left hint--rounded hint--bounce hint--large" aria-label="PHP ' . PHP_VERSION . ' is compatible with WordPress, but has reached end-of-life. Contact WP NET Support for help."><span class="orange dashicons dashicons-warning"></span>' . PHP_VERSION . '</span>';
+                $php_version_notice = '<span class="red hint--bottom-left hint--rounded hint--bounce hint--large" aria-label="PHP ' . PHP_VERSION . ' is compatible with WordPress, but has reached end-of-life. Contact WP NET Support for help."><span class="red dashicons dashicons-warning"></span>' . PHP_VERSION . '</span>';
             }                        
             if ( version_compare(PHP_VERSION, '7.4', '<') ) {
                 $php_version_notice = '<span class="red hint--bottom-left hint--rounded hint--bounce hint--large" aria-label="You are running an outdated and unsupported version of PHP! Contact WP NET Support for help."><span class="red dashicons dashicons-warning"></span> v' . PHP_VERSION . '</span>';
