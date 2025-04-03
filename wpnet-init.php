@@ -4,7 +4,7 @@ Plugin Name: WP NET Init
 Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
 Author: WP NET
 Author URI: https://wpnet.nz
-Version: 1.5.3
+Version: 1.5.5
 */
 
 if ( !defined('ABSPATH') ) {
@@ -22,7 +22,6 @@ class WPNET_Init {
     public function __construct() {
         add_filter( 'pre_comment_content', array( $this, 'block_long_comment' ), 9999 );
         add_filter( 'xmlrpc_enabled', '__return_false' ); // Disable XML-RPC
-        add_action( 'init', array( $this, 'super_cache_flush_all' ) );
         // Disable core update emails notifications
         // add_filter( 'auto_core_update_send_email', '__return_false', 9999 );
         // add_filter( 'send_core_update_notification_email', '__return_false', 9999 );
@@ -37,31 +36,6 @@ class WPNET_Init {
             );
         }
         return $text;
-    }
-    // The WP Super Cache WP Admin Bar "Delete Cache" button is very confusing!
-    // When in the WP Admin it deletes the entire cache, but on the front-end it only deletes the currently viewed page.
-    // This function replaces the front-end button, so it behaves the same on both the front-end and WP Admin.
-    public function super_cache_flush_all() {
-        if ( function_exists( 'is_plugin_active' ) ) {
-            if ( is_plugin_active( 'wp-super-cache/wp-cache.php' ) ) {
-                function super_cache_flush_all_admin_button() {
-                    global $wp_admin_bar;
-                    if ( is_admin_bar_showing() && is_super_admin() && ! is_admin()) {
-                        $wp_admin_bar->remove_menu('delete-cache');
-                        $wp_admin_bar->add_menu( array(
-                            'parent' => '',
-                            'id'     => 'delete-cache',
-                            'title'  => 'Delete Cache',
-                            'meta'   => array( 'title' => 'Delete Super Cache cached files' ),
-                            'href'   => wp_nonce_url( admin_url('options-general.php?page=wpsupercache&wp_delete_cache=1&tab=contents'), 'wp-cache' )
-                            ) );
-                    } else {
-                        return;
-                    }
-                }
-                add_action( 'wp_before_admin_bar_render', 'super_cache_flush_all_admin_button', 999 );
-            }
-        }
     }
 }
 global $WPNET_Init;
@@ -361,7 +335,7 @@ if ( is_admin() || is_network_admin() ) {
                    echo '<section><p><span class="orange dashicons dashicons-warning"></span> <strong><a class="hint--top hint--rounded hint--bounce" href="'. admin_url( 'update-core.php') . '" aria-label="Click to update WordPress">WordPress '. $wp_latest_version . ' is available</a>!</strong></p></section>';
                }
             // Widget footer
-            echo wpautop ( stripslashes( '<div class="widget-footer"><p><a href="https://my.wpnet.nz/submitticket.php" class="button button-primary button-large" target="_blank">Open a Support Ticket</a> <a href="https://my.wpnet.nz/knowledgebase" class="button button-primary button-large" target="_blank">KnowledgeBase</a> <a href="https://my.wpnet.nz" class="button button-large" target="_blank">My WP NET</a></p><p style="margin-top:10px"><span class="blue dashicons dashicons-lightbulb"></span><a href="https://wpnet.nz/wordpress-php/" target="blank">Read about WordPress and PHP compatibility</a></p></div>' ) );
+            echo wpautop ( stripslashes( '<div class="widget-footer"><p><a href="https://my.wpnet.nz/submitticket.php" class="button button-primary button-large" target="_blank">Open Support Ticket</a> <a href="https://my.wpnet.nz/knowledgebase" class="button button-primary button-large" target="_blank">KnowledgeBase</a> <a href="https://my.wpnet.nz" class="button button-large" target="_blank">My WP NET</a></p><p style="margin-top:10px"><span class="blue dashicons dashicons-lightbulb"></span><a href="https://wpnet.nz/wordpress-php/" target="blank">Read about WordPress and PHP compatibility</a></p></div>' ) );
         }
         // get memory info
         private function getMemoryInfo() {
