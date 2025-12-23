@@ -1,356 +1,959 @@
 <?php
-/*
-Plugin Name: WP NET Init
-Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
-Author: WP NET
-Author URI: https://wpnet.nz
-Version: 1.5.6
-*/
+/**
+ * Plugin Name: WP NET Init
+ * Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
+ * Author: WP NET
+ * Author URI: https://wpnet.nz
+ * Version: 1.6.5
+ * Requires at least: 5.8
+ * Requires PHP: 7.4
+ */
 
-if ( !defined('ABSPATH') ) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
-define('WPNET_PLUGIN_BASE', __FILE__);
+
+define( 'WPNET_PLUGIN_BASE', __FILE__ );
 $wp_init_data = get_file_data( WPNET_PLUGIN_BASE, array( 'Version' => 'Version' ) );
 define( 'WPNET_INIT_PLUGIN_VERSION', $wp_init_data['Version'] );
 
 /*==========================================================
 =                      WP NET INIT                         =
 ==========================================================*/
-// Initialises some common functions and loads other plugins
+
+/**
+ * Main initialization class for WP NET functionality
+ */
 class WPNET_Init {
-    public function __construct() {
-        add_filter( 'pre_comment_content', array( $this, 'block_long_comment' ), 9999 );
-        add_filter( 'xmlrpc_enabled', '__return_false' ); // Disable XML-RPC
-        // Disable core update emails notifications
-        // add_filter( 'auto_core_update_send_email', '__return_false', 9999 );
-        // add_filter( 'send_core_update_notification_email', '__return_false', 9999 );
-    }
-    // As a security precaution, block comments that are too long
-    public function block_long_comment( $text ) {
-        if ( strlen($text) > 14000 ) {
-            wp_die(
-                'This comment is longer than permitted and has been blocked.',  // message
-                'Comment Blocked',                                              // title
-                array( 'response' => 413 )                                      // args
-            );
-        }
-        return $text;
-    }
+	
+	/**
+	 * Maximum allowed comment length in characters
+	 */
+	private const MAX_COMMENT_LENGTH = 14000;
+	
+	/**
+	 * Constructor - sets up hooks
+	 */
+	public function __construct() {
+		add_filter( 'pre_comment_content', array( $this, 'block_long_comment' ), 9999 );
+		add_filter( 'xmlrpc_enabled', '__return_false' );
+	}
+	
+	/**
+	 * Block excessively long comments as a security precaution
+	 *
+	 * @param string $text The comment content
+	 * @return string The comment content if valid
+	 */
+	public function block_long_comment( string $text ): string {
+		if ( strlen( $text ) > self::MAX_COMMENT_LENGTH ) {
+			wp_die(
+				esc_html__( 'This comment is longer than permitted and has been blocked.', 'wpnet' ),
+				esc_html__( 'Comment Blocked', 'wpnet' ),
+				array( 'response' => 413 )
+			);
+		}
+		return $text;
+	}
 }
+
 global $WPNET_Init;
 $WPNET_Init = new WPNET_Init();
 
 /*========================================================
 =                       BRANDING                         =
 ========================================================*/
-// brands some elements of the WP Admin and the IWP Client
+
+/**
+ * Handles WP Admin and plugin branding customizations
+ */
 class WPNET_WP_Admin_Branding {
-    public function __construct() {
-        add_filter( 'admin_footer_text', array( $this, 'wpnet_dashboard_footer' ) ); // add the WP NET branding to the WP Admin footer
-        add_filter( 'all_plugins', array($this, 'wpnet_plugin_branding' ) ); // brand IWP Client + SpinupWP
-        if ( ! defined( 'WPNET_ANNOUNCEMENTS_WIDGET_DISABLE' ) || WPNET_ANNOUNCEMENTS_WIDGET_DISABLE == false ) {
-            if ( is_main_site() && is_multisite() ) {
-                add_action( 'wp_network_dashboard_setup', array( $this, 'setup_announcements_widget' ) ); // add the Announcements RSS Widget
-            } elseif ( ! defined( 'WPNET_ANNOUNCEMENTS_WIDGET_WPMU_DISABLE' ) || WPNET_ANNOUNCEMENTS_WIDGET_WPMU_DISABLE == false || ! is_multisite() ) {
-                add_action( 'wp_dashboard_setup', array( $this, 'setup_announcements_widget' ) ); // add the Announcements RSS Widget
-            }
-        }
-        define( 'WPNET_LOGO_SMALL', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAASCAYAAAAHWr00AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAABQVJREFUeNrkV1toHFUYPnPZTZtUm2pMQlswtJW2WLPRXIx90IqCooIW6ouKSAUVQcEHfRG0LYIX+tYXKz5IjeKDEC/4YF9ispXYSExtLGjrrbYIbdo0t232MjPH75/9x/3n7Gwukjd/+HbnXOac8/3XM9bQ0NANk5OTrm3biuUyUFRxaQIcIAA84IoxngKaAVrEAnzgKjAFaJrge55qbm21tnX2NPqBtsNZFZkO19X8dllov0a1EqLLf411zrTb19d3YHx8fE8qlYqGXwXeE9OvB4aBa5lwAdgF/Cnm7AEOGYTngQlgDOgrFgoD7T29qy6UWo6en8mtd+0Y4wHgCYPwrcDnK8JX07JaH965+SEXRH9Ip9PPCcJ3G4R3AFuMNToNwrtYMaZs5IPvtbR+xXHdg5eL3saLea81FSf8OHAYhLOCcD2wfiUIB5osoVVJqzRZZIitEUkHu1MkPQlr3GG0b1vCvm8BvY5lzZF1nWrsN9pFJ3neshHtB13aLg7xK3AayPDBNgNtwG/c7k04vFQCxe5W0SbLPwXcBLwNXMf9pNxHOSSShDzrPuBrbvvGOMX5i5wbasnzvE4kHwP9IpJ/cXnh44Iw+XY3E65jlzTlFnZhSnA3A9eIsW+AQUYb54RI2ihheYGWJNaK5LIPZjhaSTMxyQNHFvGieyVhGHXUtqxP5QSX/7PAM6J/J/AJsAm4kfuuctJaw9lzB5PqNjbNiue1csCyrPnW+pQOvLSCa1Mm+RK/XWC3jQn3ovsRHLJfI9ME8XUb8M5j+J8VfT8DZyqxqtNauNNMya+bLfmxTBgRHmFLR7HbLeI5qlcngRxwj4jbQSOeaY0TwO3AnZSsKsbTtNBY+7r6zIa0A+1ryp4ziKyDytLvi4z6OhTTX1auNLRFiv7IUO4+YH91DbJUCpobv5JTUwUf8VsZjR5/51iOhGIybVjvBLu+dGvHiOfT7AnHgHc400r3/QyEVgdkPR1mzw2+0kfwf5bbdNyMHwS7g0DPRH1laOVXI5Dtyrrl51Bd8Xr/r4U9JhMln3Xssh1i7ihwQbS38LgsHd8Dk9XbhHu/QEotBDqd9wOKL3Lxemi8pAP1ZqD0u8LKr8EDntUqVpk1XPqSEd+zsfITvlse9mBhT1enAlc8U3l6UrTv50wrLTzB69pcYx9IiF9f4BIr8hBcdwBabzg+MafOTefCUoEzaSKOc30Ay7wEKluZXgfG9qKfvKWB157A3C4rTjJvEg50RUNkdZc2qUH4O0GG5GG+Uiq+Sp7hGD7HiawFeNAgPMqu28m1/aK0Am1cwomKQYCNLBFxYal6A40PhW88Lc4S8flbV5erSpRXta1yp04mTIT+4Doc3aaiJHaKiZD8yIQpPrvE++epznF4/FTzUGVXDmEckqrCy+hoTzhb1G7H/DnRR3f+s8u5ddnGyzIpOUZsSk9ImjO6yKVgMSFFHVhgvImrySmBLwwOyyIcxXGSDIvnkRpzji3xy8WiXFIDqL9qZIFxF0gJrFpgLiG2V+gm+Xxe5XI5xR8PwzWOOSaeyV1LfCOT8u1CPEuFgqK9Slo7JcSwLjuzYyiDQpvq6lf/0UvspDZ/LZUTWjabVfgeVvw97PKFQZIpiOwbyV0cw4FIKIMJ39GVG4nvq6bmFnvN9kym4AV1HMJTfFuSdwbFucFdAsF5zimRbOK7fSR/hYmOM/f2xtVkcq3+T/KPAAMAZkAPvShYUOUAAAAASUVORK5CYII=');
-        add_action( 'admin_enqueue_scripts', array( $this, 'iwp_hide_notice_css' ), 1 );
-    }
-    public function setup_announcements_widget() {
-        wp_add_dashboard_widget( 'wpnet_announcements_rss', 'WP NET - Announcements', array( $this, 'announcements_dashboard_widget' ) );
-        add_action( 'admin_enqueue_scripts', array( $this, 'announcements_widget_css' ) );
-    }
-    // Add CSS for the Widget
-    public function announcements_widget_css() {
-        $custom_css = "
-                    #wpnet_announcements_rss ul {margin-bottom:0}
-                    #wpnet_announcements_rss ul li {list-style-position: outside; list-style-type:none; margin-left:1em}
-                    #wpnet_announcements_rss ul li span {margin-left:-1.15em}
-                    ";
-        wp_add_inline_style( 'dashboard', $custom_css );
-    }
-    public function wpnet_dashboard_footer() {
-        echo '<span id="footer-thankyou" style="font-style:normal"><a target="_blank" href="https://wpnet.nz" title="Hosted on WP NET - WordPress Hosting &amp; Support"><img style="vertical-align:bottom;" src="'. WPNET_LOGO_SMALL .'"></a> &#8211; WordPress Hosting &amp; Support</span>';
-    }
-    // CSS to hide the IWP Client notice (it's a bit naughty)
-    public function iwp_hide_notice_css() {
-        $custom_css = "
-                    body.wp-admin #wpbody .updated[style*=\"text-align: center; display:block !important;\"] {visibility:hidden}
-                    body.wp-admin #wpbody .updated[style*=\"text-align: center; display:block !important;\"] * {display:none !important}
-                    ";
-        wp_add_inline_style( 'common', $custom_css );
-    }
-    public function wpnet_plugin_branding( $plugins_list ) {
-        // Brand IWP Client plugin
-        if ( isset( $plugins_list['iwp-client/init.php'] ) ) {
-            $plugin_info_original = $plugins_list['iwp-client/init.php'];
-            $plugin_info_new  = array(
-                'Name'        => 'WP NET Client',
-                'Title'       => 'WP NET Client',
-                'Description' => 'WP NET Client plugin. If you deactivate or remove this plugin it will be automatically reinstalled. Status: <strong>DISCONNECTED</strong>',
-                'Author'      => 'WP NET',
-                'AuthorName'  => 'WP NET',
-                'AuthorURI'   => 'https://wpnet.nz',
-                'PluginURI'   => 'https://wpnet.nz',
-                'hide'        => false,
-            );
-            $plugins_list['iwp-client/init.php'] = array_merge($plugin_info_original, $plugin_info_new);
-        }
-        // Brand SpinupWP plugin
-        if ( isset( $plugins_list['spinupwp/spinupwp.php'] ) ) {
-            $plugin_info_original = $plugins_list['spinupwp/spinupwp.php'];
-            $plugin_info_new  = array(
-                'Name'        => 'Cache Control',
-                'Title'       => 'Cache Control',
-                'Author'      => 'WP NET',
-                'AuthorName'  => 'WP NET',
-                'AuthorURI'   => 'https://wpnet.nz',
-                'PluginURI'   => 'https://wpnet.nz',
-                'Description' => "Creates a WP Admin Menu item for 'Cache'. Options include: 'Purge Page Cache' (Nginx), 'Purge Object Cache' (Redis). If a cache type is inactive, it will not display in the menu.",
-                'slug'        => null
-            );
-            $plugins_list['spinupwp/spinupwp.php'] = array_merge($plugin_info_original, $plugin_info_new);
-        }
-        return $plugins_list;
-        }
-        // Output the Announcements RSS Feed Widget
-        public function announcements_dashboard_widget() {
-            include_once( ABSPATH . WPINC . '/feed.php' );
-            $rss = fetch_feed( 'http://feeds.wpnet.nz/wpnetannouncements' );
-            if ( !is_wp_error( $rss ) ) {
-                $maxitems  = $rss->get_item_quantity(5);
-                $rss_items = $rss->get_items(0, $maxitems);
-            } else {
-                if ( is_admin() || current_user_can('manage_options') ) {
-                    echo '<p>';
-                    printf( '<strong>RSS Error</strong>: %s', $rss->get_error_message() );
-                    echo '</p>';
-                } else {
-                    echo '<p>';
-                    echo 'An error has occurred. RSS feed could not be created.';
-                    echo '</p>';
-                }
-                return;
-            }?>
-            <ul>
-            <?php if ( $maxitems == 0 ) {
-                echo '<li>No announcements to display.</li>';
-                $rss->__destruct();
-                unset($rss);
-            } else {
-                // Loop through each feed item and display each item as a hyperlink.
-                foreach ( $rss_items as $item ) : ?>
-                <li>
-                    <span style="color:#999" class="dashicons dashicons-arrow-right"></span><a href='<?php echo esc_url( $item->get_permalink() ); ?>'
-                    title='<?php echo 'Posted '.$item->get_date('j F Y | g:i a'); ?>' target='_blank'><strong>
-                    <?php echo esc_html( $item->get_title() ); ?></a></strong>
-                    <span style="float:right; display:inline-block;color:#999"><?php echo $item->get_date('j M y'); ?></span>
-                </li>
-                <?php endforeach; ?>
-                </ul>
-                <?php
-                $rss->__destruct();
-                unset( $rss );
-            }
-        }
+	
+	/**
+	 * Base64 encoded WP NET logo
+	 */
+	private const LOGO_SMALL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAASCAYAAAAHWr00AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAABQVJREFUeNrkV1toHFUYPnPZTZtUm2pMQlswtJW2WLPRXIx90IqCooIW6ouKSAUVQcEHfRG0LYIX+tYXKz5IjeKDEC/4YF9ispXYSExtLGjrrbYIbdo0t232MjPH75/9x/3n7Gwukjd/+HbnXOac8/3XM9bQ0NANk5OTrm3biuUyUFRxaQIcIAA84IoxngKaAVrEAnzgKjAFaJrge55qbm61tnX2NPqBtsNZFZkO19X8dllov0a1EqLLf411zrTb19d3YHx8fE8qlYqGXwXeE9OvB4aBa5lwAdgF/Cnm7AEOGYTngQlgDOgrFgoD7T29qy6UWo6en8mtd+0Y4wHgCYPwrcDnK8JX07JaH965+SEXRH9Ip9PPCcJ3G4R3AFuMNToNwrtYMaZs5IPvtbR+xXHdg5eL3saLea81FSf8OHAYhLOCcD2wfiUIB5osoVVJqzRZZIitEUkHu1MkPQlr3GG0b1vCvm8BvY5lzZF1nWrsN9pFJ3neshHtB13aLg7xK3AayPDBNgNtwG/c7k04vFQCxe5W0SbLPwXcBLwNXMf9pNxHOSSShDzrPuBrbvvGOMX5i5wbasnzvE4kHwP9IpJ/cXnh44Iw+XY3E65jlzTlFnZhSnA3A9eIsW+AQUYb54RI2ihheYGWJNaK5LIPZjhaSTMxyQNHFvGieyVhGHXUtqxP5QSX/7PAM6J/J/AJsAm4kfuuctJaw9lzB5PqNjbNiue1csCyrPnW+pQOvLSCa1Mm+RK/XWC3jQn3ovsRHLJfI9ME8XUb8M5j+J8VfT8DZyqxqtNauNNMya+bLfmxTBgRHmFLR7HbLeI5qlcngRxwj4jbQSOeaY0TwO3AnZSsKsbTtNBY+7r6zIa0A+1ryp4ziKyDytLvi4z6OhTTX1auNLRFiv7IUO4+YH91DbJUCpobv5JTUwUf8VsZjR5/51iOhGIybVjvBLu+dGvHiOfT7AnHgHc400r3/QyEVgdkPR1mzw2+0kfwf5bbdNyMHwS7g0DPRH1laOVXI5Dtyrrl51Bd8Xr/r4U9JhMln3Xssh1i7ihwQbS38LgsHd8Dk9XbhHu/QEotBDqd9wOKL3Lxemi8pAP1ZqD0u8LKr8EDntUqVpk1XPqSEd+zsfITvlse9mBhT1enAlc8U3l6UrTv50wrLTzB69pcYx9IiF9f4BIr8hBcdwBabzg+MafOTefCUoEzaSKOc30Ay7wEKluZXgfG9qKfvKWB157A3C4rTjJvEg50RUNkdZc2qUH4O0GG5GG+Uiq+Sp7hGD7HiawFeNAgPMqu28m1/aK0Am1cwomKQYCNLBFxYal6A40PhW88Lc4S8flbV5erSpRXta1yp04mTIT+4Doc3aaiJHaKiZD8yIQpPrvE++epznF4/FTzUGVXDmEckqrCy+hoTzhb1G7H/DnRR3f+s8u5ddnGyzIpOUZsSk9ImjO6yKVgMSFFHVhgvImrySmBLwwOyyIcxXGSDIvnkRpzji3xy8WiXFIDqL9qZIFxF0gJrFpgLiG2V+gm+Xxe5XI5xR8PwzWOOSaeyV1LfCOT8u1CPEuFgqK9Slo7JcSwLjuzYyiDQpvq6lf/0UvspDZ/LZUTWjabVfgeVvw97PKFQZIpiOwbyV0cw4FIKIMJ39GVG4nvq6bmFnvN9kym4AV1HMJTfFuSdwbFucFdAsF5zimRbOK7fSR/hYmOM/f2xtVkcq3+T/KPAAMAZkAPvShYUOUAAAAASUVORK5CYII=';
+	
+	/**
+	 * Constructor - sets up hooks
+	 */
+	public function __construct() {
+		add_filter( 'admin_footer_text', array( $this, 'wpnet_dashboard_footer' ) );
+		add_filter( 'all_plugins', array( $this, 'wpnet_plugin_branding' ) );
+		
+		if ( $this->should_show_announcements_widget() ) {
+			$hook = ( is_main_site() && is_multisite() ) ? 'wp_network_dashboard_setup' : 'wp_dashboard_setup';
+			add_action( $hook, array( $this, 'setup_announcements_widget' ) );
+		}
+		
+		add_action( 'admin_enqueue_scripts', array( $this, 'iwp_hide_notice_css' ), 1 );
+	}
+	
+	/**
+	 * Check if announcements widget should be displayed
+	 *
+	 * @return bool
+	 */
+	private function should_show_announcements_widget(): bool {
+		if ( defined( 'WPNET_ANNOUNCEMENTS_WIDGET_DISABLE' ) && WPNET_ANNOUNCEMENTS_WIDGET_DISABLE === true ) {
+			return false;
+		}
+		
+		if ( is_multisite() && ! is_main_site() ) {
+			return ! ( defined( 'WPNET_ANNOUNCEMENTS_WIDGET_WPMU_DISABLE' ) && WPNET_ANNOUNCEMENTS_WIDGET_WPMU_DISABLE === true );
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Register announcements widget
+	 */
+	public function setup_announcements_widget(): void {
+		wp_add_dashboard_widget(
+			'wpnet_announcements_rss',
+			'WP NET - Announcements',
+			array( $this, 'announcements_dashboard_widget' )
+		);
+		add_action( 'admin_enqueue_scripts', array( $this, 'announcements_widget_css' ) );
+	}
+	
+	/**
+	 * Add CSS for announcements widget
+	 */
+	public function announcements_widget_css(): void {
+		$custom_css = '
+			#wpnet_announcements_rss ul { margin-bottom: 0; font-size: 1em; }
+			#wpnet_announcements_rss ul li { 
+				list-style-position: outside; 
+				list-style-type: none; 
+				margin-left: 1em;
+				padding: 0 0 0.2em 0;
+				border-bottom: 1px solid #f0f0f1;
+			}
+            #wpnet_announcements_rss ul li a {font-size: 1.1em;}
+			#wpnet_announcements_rss ul li:last-child { border-bottom: none; }
+			#wpnet_announcements_rss ul li span.dashicons { margin-left: -1.15em; }
+			#wpnet_announcements_rss ul li .date { color: #999; font-size: 0.9em; }
+		';
+		wp_add_inline_style( 'dashboard', $custom_css );
+	}
+	
+	/**
+	 * Customize admin footer text
+	 *
+	 * @return string
+	 */
+	public function wpnet_dashboard_footer(): string {
+		return sprintf(
+			'<span id="footer-thankyou" style="font-style:normal"><a target="_blank" rel="noopener" href="%s" title="%s"><img style="vertical-align:bottom;" src="%s" alt="WP NET"></a> &#8211; %s</span>',
+			esc_url( 'https://wpnet.nz' ),
+			esc_attr__( 'Hosted on WP NET - WordPress Hosting & Support', 'wpnet' ),
+			esc_attr( self::LOGO_SMALL ),
+			esc_html__( 'WordPress Hosting & Support', 'wpnet' )
+		);
+	}
+	
+	/**
+	 * Hide IWP Client notices with CSS
+	 */
+	public function iwp_hide_notice_css(): void {
+		$custom_css = '
+			body.wp-admin #wpbody .updated[style*="text-align: center; display:block !important;"] { visibility: hidden; }
+			body.wp-admin #wpbody .updated[style*="text-align: center; display:block !important;"] * { display: none !important; }
+		';
+		wp_add_inline_style( 'common', $custom_css );
+	}
+	
+	/**
+	 * Brand specific plugins in the plugins list
+	 *
+	 * @param array $plugins_list Array of installed plugins
+	 * @return array Modified plugins list
+	 */
+	public function wpnet_plugin_branding( array $plugins_list ): array {
+		// Brand IWP Client plugin
+		if ( isset( $plugins_list['iwp-client/init.php'] ) ) {
+			$plugins_list['iwp-client/init.php'] = array_merge(
+				$plugins_list['iwp-client/init.php'],
+				array(
+					'Name'        => 'WP NET Client',
+					'Title'       => 'WP NET Client',
+					'Description' => 'WP NET Client plugin. If you deactivate or remove this plugin it will be automatically reinstalled. Status: <strong>DISCONNECTED</strong>',
+					'Author'      => 'WP NET',
+					'AuthorName'  => 'WP NET',
+					'AuthorURI'   => 'https://wpnet.nz',
+					'PluginURI'   => 'https://wpnet.nz',
+					'hide'        => false,
+				)
+			);
+		}
+		
+		// Brand SpinupWP plugin
+		if ( isset( $plugins_list['spinupwp/spinupwp.php'] ) ) {
+			$plugins_list['spinupwp/spinupwp.php'] = array_merge(
+				$plugins_list['spinupwp/spinupwp.php'],
+				array(
+					'Name'        => 'Cache Control',
+					'Title'       => 'Cache Control',
+					'Author'      => 'WP NET',
+					'AuthorName'  => 'WP NET',
+					'AuthorURI'   => 'https://wpnet.nz',
+					'PluginURI'   => 'https://wpnet.nz',
+					'Description' => "Creates a WP Admin Menu item for 'Cache'. Options include: 'Purge Page Cache' (Nginx), 'Purge Object Cache' (Redis). If a cache type is inactive, it will not display in the menu.",
+					'slug'        => null,
+				)
+			);
+		}
+		
+		return $plugins_list;
+	}
+	
+	/**
+	 * Output the announcements RSS feed widget
+	 */
+	public function announcements_dashboard_widget(): void {
+		include_once ABSPATH . WPINC . '/feed.php';
+		
+		$rss = fetch_feed( 'http://feeds.wpnet.nz/wpnetannouncements' );
+		
+		if ( is_wp_error( $rss ) ) {
+			echo '<p>';
+			if ( current_user_can( 'manage_options' ) ) {
+				printf(
+					'<strong>%s</strong>: %s',
+					esc_html__( 'RSS Error', 'wpnet' ),
+					esc_html( $rss->get_error_message() )
+				);
+			} else {
+				esc_html_e( 'An error has occurred. RSS feed could not be created.', 'wpnet' );
+			}
+			echo '</p>';
+			return;
+		}
+		
+		$maxitems  = $rss->get_item_quantity( 5 );
+		$rss_items = $rss->get_items( 0, $maxitems );
+		
+		echo '<ul>';
+		
+		if ( 0 === $maxitems ) {
+			echo '<li>' . esc_html__( 'No announcements to display.', 'wpnet' ) . '</li>';
+		} else {
+			foreach ( $rss_items as $item ) {
+				printf(
+					'<li>
+						<span style="color:#999" class="dashicons dashicons-arrow-right"></span>
+						<a href="%s" title="%s" target="_blank" rel="noopener"><strong>%s</strong></a>
+						<span class="date">%s</span>
+						<span class="desc" style="display:inline-block">%s</span>
+					</li>',
+					esc_url( $item->get_permalink() ),
+					esc_attr( sprintf( __( 'Posted %s', 'wpnet' ), $item->get_date( 'j F Y | g:i a' ) ) ),
+					esc_html( $item->get_title() ),
+					esc_html( $item->get_date( 'j M y' ) ),
+					esc_html( wp_html_excerpt( $item->get_description(), 150, '&nbsp;&hellip;' ) )
+				);
+			}
+		}
+		
+		echo '</ul>';
+		
+		$rss->__destruct();
+		unset( $rss );
+	}
 }
+
 global $WPNET_WP_Admin_Branding;
 $WPNET_WP_Admin_Branding = new WPNET_WP_Admin_Branding();
-/*=====  End of BRANDING  ======*/
 
 /*====================================================
 =            WP NET Dashboard Info Widget            =
 ====================================================*/
-// Display PHP version, disk space and memory usage in a WP Dashboard widget. Based on 'My Simple Space' by Michael Mann.
+
+/**
+ * Display site information in a dashboard widget
+ * Shows PHP version, disk space, memory usage, etc.
+ */
 if ( is_admin() || is_network_admin() ) {
-    class WPNET_Site_Info_Widget {
-        public function __construct() {
-            if ( is_main_site() && is_multisite() ) {
-                add_action( 'wp_network_dashboard_setup', array( $this, 'setup_site_info_widget' ) );
-            } elseif ( ! defined( 'WPNET_INFO_WIDGET_WPMU_DISABLE' ) || WPNET_INFO_WIDGET_WPMU_DISABLE == false || ! is_multisite()  ) {
-                add_action( 'wp_dashboard_setup', array( $this, 'setup_site_info_widget' ) );
-            }
-        }
-        // Dashboard Widget
-        public function setup_site_info_widget() {
-            wp_add_dashboard_widget('site_info_widget', 'WP NET - Site Info <span class="title-version">v' . WPNET_INIT_PLUGIN_VERSION . '</span>', array( $this, 'site_info_dashboard_widget' ) );
-            add_action( 'admin_enqueue_scripts', array( $this, 'site_info_widget_css' ) );
-        }
-        // Add CSS for the Widget
-        public function site_info_widget_css() {
-            $custom_css = "
-                        #site_info_widget section {display:inline-block; padding: 0 0 .5em 0}
-                        #site_info_widget section.full-width {width:100%}
-                        #site_info_widget section:first-of-type {}
-                        #site_info_widget section:nth-of-type(2) {border-top: 1px solid #eee; padding: .5em 0 .5em 0}
-                        #site_info_widget section p {font-size:1.1em;display: inline-block;margin:0 .7em 0 0}
-                        #site_info_widget section.full-width p {width:42%; }
-                        #site_info_widget section.full-width p.full-width {width:100%; }
-                        #site_info_widget section.full-width p.note {font-style:italic }
-                        #site_info_widget section.full-width p:nth-child(even) {width: 55%;margin-right:0}
-                        #site_info_widget section p .data {float:right; text-align:center}
-                        #site_info_widget section a.toggle-link {text-decoration:none}
-                        #site_info_widget section a.toggle-link #open-indicator {transition: transform 0.5s ease-in-out}
-                        #site_info_widget section a.toggle-link #open-indicator.open {-webkit-transform: rotate(90deg);-moz-transform: rotate(90deg);-ms-transform: rotate(90deg);-o-transform: rotate(90deg);transform: rotate(90deg);}
-                        #site_info_widget section a.toggle-link:active,
-                        #site_info_widget section a.toggle-link:focus {box-shadow:none;color:#0073aa}
-                        #site_info_widget .widget-footer {border-top:1px solid #eee;padding-top:5px}
-                        #site_info_widget .widget-footer p {margin:0.3em 0 0}
-                        #site_info_widget h2 span.title-version { color: #AAA; font-weight: normal}
-                        #site_info_widget small {font-size:.8em;vertical-align:text-top}
-                        #site_info_widget .big {font-size:1.6em;vertical-align:text-top; line-height:1; font-weight:300}
-                        #site_info_widget .green {color:green}
-                        #site_info_widget .red {color:red}
-                        #site_info_widget .grey {color:#ddd}
-                        #site_info_widget .orange {color:orange}
-                        #site_info_widget .blue {color:#2271b1}
-                        #site_info_widget a.button.button-primary {color:#fff}
-                        /*! Hint.css - v2.7.0 - 2021-10-01
-                        * https://kushagra.dev/lab/hint/
-                        * Copyright (c) 2021 Kushagra Gour */
-[class*=hint--]{position:relative;display:inline-block}[class*=hint--]:after,[class*=hint--]:before{position:absolute;-webkit-transform:translate3d(0,0,0);-moz-transform:translate3d(0,0,0);transform:translate3d(0,0,0);visibility:hidden;opacity:0;z-index:1000000;pointer-events:none;-webkit-transition:.3s ease;-moz-transition:.3s ease;transition:.3s ease;-webkit-transition-delay:0s;-moz-transition-delay:0s;transition-delay:0s}[class*=hint--]:hover:after,[class*=hint--]:hover:before{visibility:visible;opacity:1;-webkit-transition-delay:.1s;-moz-transition-delay:.1s;transition-delay:.1s}[class*=hint--]:before{content:'';position:absolute;background:0 0;border:6px solid transparent;z-index:1000001}[class*=hint--]:after{background:#383838;color:#fff;padding:8px 10px;font-size:12px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;line-height:12px;white-space:nowrap;text-shadow:0 -1px 0 #000;box-shadow:4px 4px 8px rgba(0,0,0,.3)}[class*=hint--][aria-label]:after{content:attr(aria-label)}[class*=hint--][data-hint]:after{content:attr(data-hint)}[aria-label='']:after,[aria-label='']:before,[data-hint='']:after,[data-hint='']:before{display:none!important}.hint--top-left:before,.hint--top-right:before,.hint--top:before{border-top-color:#383838}.hint--bottom-left:before,.hint--bottom-right:before,.hint--bottom:before{border-bottom-color:#383838}.hint--top:after,.hint--top:before{bottom:100%;left:50%}.hint--top:before{margin-bottom:-11px;left:calc(50% - 6px)}.hint--top:after{-webkit-transform:translateX(-50%);-moz-transform:translateX(-50%);transform:translateX(-50%)}.hint--top:hover:before{-webkit-transform:translateY(-8px);-moz-transform:translateY(-8px);transform:translateY(-8px)}.hint--top:hover:after{-webkit-transform:translateX(-50%) translateY(-8px);-moz-transform:translateX(-50%) translateY(-8px);transform:translateX(-50%) translateY(-8px)}.hint--bottom:after,.hint--bottom:before{top:100%;left:50%}.hint--bottom:before{margin-top:-11px;left:calc(50% - 6px)}.hint--bottom:after{-webkit-transform:translateX(-50%);-moz-transform:translateX(-50%);transform:translateX(-50%)}.hint--bottom:hover:before{-webkit-transform:translateY(8px);-moz-transform:translateY(8px);transform:translateY(8px)}.hint--bottom:hover:after{-webkit-transform:translateX(-50%) translateY(8px);-moz-transform:translateX(-50%) translateY(8px);transform:translateX(-50%) translateY(8px)}.hint--right:before{border-right-color:#383838;margin-left:-11px;margin-bottom:-6px}.hint--right:after{margin-bottom:-14px}.hint--right:after,.hint--right:before{left:100%;bottom:50%}.hint--right:hover:after,.hint--right:hover:before{-webkit-transform:translateX(8px);-moz-transform:translateX(8px);transform:translateX(8px)}.hint--left:before{border-left-color:#383838;margin-right:-11px;margin-bottom:-6px}.hint--left:after{margin-bottom:-14px}.hint--left:after,.hint--left:before{right:100%;bottom:50%}.hint--left:hover:after,.hint--left:hover:before{-webkit-transform:translateX(-8px);-moz-transform:translateX(-8px);transform:translateX(-8px)}.hint--top-left:after,.hint--top-left:before{bottom:100%;left:50%}.hint--top-left:before{margin-bottom:-11px;left:calc(50% - 6px)}.hint--top-left:after{-webkit-transform:translateX(-100%);-moz-transform:translateX(-100%);transform:translateX(-100%);margin-left:12px}.hint--top-left:hover:before{-webkit-transform:translateY(-8px);-moz-transform:translateY(-8px);transform:translateY(-8px)}.hint--top-left:hover:after{-webkit-transform:translateX(-100%) translateY(-8px);-moz-transform:translateX(-100%) translateY(-8px);transform:translateX(-100%) translateY(-8px)}.hint--top-right:after,.hint--top-right:before{bottom:100%;left:50%}.hint--top-right:before{margin-bottom:-11px;left:calc(50% - 6px)}.hint--top-right:after{-webkit-transform:translateX(0);-moz-transform:translateX(0);transform:translateX(0);margin-left:-12px}.hint--top-right:hover:after,.hint--top-right:hover:before{-webkit-transform:translateY(-8px);-moz-transform:translateY(-8px);transform:translateY(-8px)}.hint--bottom-left:after,.hint--bottom-left:before{top:100%;left:50%}.hint--bottom-left:before{margin-top:-11px;left:calc(50% - 6px)}.hint--bottom-left:after{-webkit-transform:translateX(-100%);-moz-transform:translateX(-100%);transform:translateX(-100%);margin-left:12px}.hint--bottom-left:hover:before{-webkit-transform:translateY(8px);-moz-transform:translateY(8px);transform:translateY(8px)}.hint--bottom-left:hover:after{-webkit-transform:translateX(-100%) translateY(8px);-moz-transform:translateX(-100%) translateY(8px);transform:translateX(-100%) translateY(8px)}.hint--bottom-right:after,.hint--bottom-right:before{top:100%;left:50%}.hint--bottom-right:before{margin-top:-11px;left:calc(50% - 6px)}.hint--bottom-right:after{-webkit-transform:translateX(0);-moz-transform:translateX(0);transform:translateX(0);margin-left:-12px}.hint--bottom-right:hover:after,.hint--bottom-right:hover:before{-webkit-transform:translateY(8px);-moz-transform:translateY(8px);transform:translateY(8px)}.hint--large:after,.hint--medium:after,.hint--small:after{white-space:normal;line-height:1.4em;word-wrap:break-word}.hint--small:after{width:80px}.hint--medium:after{width:150px}.hint--large:after{width:300px}.hint--error:after{background-color:#b34e4d;text-shadow:0 -1px 0 #592726}.hint--error.hint--top-left:before,.hint--error.hint--top-right:before,.hint--error.hint--top:before{border-top-color:#b34e4d}.hint--error.hint--bottom-left:before,.hint--error.hint--bottom-right:before,.hint--error.hint--bottom:before{border-bottom-color:#b34e4d}.hint--error.hint--left:before{border-left-color:#b34e4d}.hint--error.hint--right:before{border-right-color:#b34e4d}.hint--warning:after{background-color:#c09854;text-shadow:0 -1px 0 #6c5328}.hint--warning.hint--top-left:before,.hint--warning.hint--top-right:before,.hint--warning.hint--top:before{border-top-color:#c09854}.hint--warning.hint--bottom-left:before,.hint--warning.hint--bottom-right:before,.hint--warning.hint--bottom:before{border-bottom-color:#c09854}.hint--warning.hint--left:before{border-left-color:#c09854}.hint--warning.hint--right:before{border-right-color:#c09854}.hint--info:after{background-color:#3986ac;text-shadow:0 -1px 0 #1a3c4d}.hint--info.hint--top-left:before,.hint--info.hint--top-right:before,.hint--info.hint--top:before{border-top-color:#3986ac}.hint--info.hint--bottom-left:before,.hint--info.hint--bottom-right:before,.hint--info.hint--bottom:before{border-bottom-color:#3986ac}.hint--info.hint--left:before{border-left-color:#3986ac}.hint--info.hint--right:before{border-right-color:#3986ac}.hint--success:after{background-color:#458746;text-shadow:0 -1px 0 #1a321a}.hint--success.hint--top-left:before,.hint--success.hint--top-right:before,.hint--success.hint--top:before{border-top-color:#458746}.hint--success.hint--bottom-left:before,.hint--success.hint--bottom-right:before,.hint--success.hint--bottom:before{border-bottom-color:#458746}.hint--success.hint--left:before{border-left-color:#458746}.hint--success.hint--right:before{border-right-color:#458746}.hint--always:after,.hint--always:before{opacity:1;visibility:visible}.hint--always.hint--top:before{-webkit-transform:translateY(-8px);-moz-transform:translateY(-8px);transform:translateY(-8px)}.hint--always.hint--top:after{-webkit-transform:translateX(-50%) translateY(-8px);-moz-transform:translateX(-50%) translateY(-8px);transform:translateX(-50%) translateY(-8px)}.hint--always.hint--top-left:before{-webkit-transform:translateY(-8px);-moz-transform:translateY(-8px);transform:translateY(-8px)}.hint--always.hint--top-left:after{-webkit-transform:translateX(-100%) translateY(-8px);-moz-transform:translateX(-100%) translateY(-8px);transform:translateX(-100%) translateY(-8px)}.hint--always.hint--top-right:after,.hint--always.hint--top-right:before{-webkit-transform:translateY(-8px);-moz-transform:translateY(-8px);transform:translateY(-8px)}.hint--always.hint--bottom:before{-webkit-transform:translateY(8px);-moz-transform:translateY(8px);transform:translateY(8px)}.hint--always.hint--bottom:after{-webkit-transform:translateX(-50%) translateY(8px);-moz-transform:translateX(-50%) translateY(8px);transform:translateX(-50%) translateY(8px)}.hint--always.hint--bottom-left:before{-webkit-transform:translateY(8px);-moz-transform:translateY(8px);transform:translateY(8px)}.hint--always.hint--bottom-left:after{-webkit-transform:translateX(-100%) translateY(8px);-moz-transform:translateX(-100%) translateY(8px);transform:translateX(-100%) translateY(8px)}.hint--always.hint--bottom-right:after,.hint--always.hint--bottom-right:before{-webkit-transform:translateY(8px);-moz-transform:translateY(8px);transform:translateY(8px)}.hint--always.hint--left:after,.hint--always.hint--left:before{-webkit-transform:translateX(-8px);-moz-transform:translateX(-8px);transform:translateX(-8px)}.hint--always.hint--right:after,.hint--always.hint--right:before{-webkit-transform:translateX(8px);-moz-transform:translateX(8px);transform:translateX(8px)}.hint--rounded:after{border-radius:4px}.hint--no-animate:after,.hint--no-animate:before{-webkit-transition-duration:0s;-moz-transition-duration:0s;transition-duration:0s}.hint--bounce:after,.hint--bounce:before{-webkit-transition:opacity .3s ease,visibility .3s ease,-webkit-transform .3s cubic-bezier(.71,1.7,.77,1.24);-moz-transition:opacity .3s ease,visibility .3s ease,-moz-transform .3s cubic-bezier(.71,1.7,.77,1.24);transition:opacity .3s ease,visibility .3s ease,transform .3s cubic-bezier(.71,1.7,.77,1.24)}.hint--no-shadow:after,.hint--no-shadow:before{text-shadow:initial;box-shadow:initial}.hint--no-arrow:before{display:none}";
-            wp_add_inline_style( 'dashboard', $custom_css );
-        }
-        // Output the contents to Dashboard Widget
-        public function site_info_dashboard_widget() {
-            global $wpdb, $wp_version;
-            $dbname = $wpdb->dbname;
-            // Setup Home Path for Later Usage
-            if ( get_home_path() === "/" )
-                $homepath = ABSPATH;
-            else
-                $homepath = get_home_path();
-            $memory       = $this->getMemoryInfo();
-            $memory_limit = $memory[ 'memory_limit' ];
-            $memory_usage = $memory[ 'memory_usage' ];
-            $subfolder    = strrpos( get_site_url(), '/', 8 ); // Starts after http:// or https:// to find the last slash
-            // Determines if site is using a subfolder, such as /wp
-            if ( isset( $subfolder ) && $subfolder != "" ) {
-                $remove = substr( get_site_url(), strrpos( get_site_url(), '/' ), strlen( get_site_url() ) );
-                $home   = str_replace ( $remove, '', $homepath ); // Strips out subfolder to avoid duplicate folder in path
-            } else {
-                $home = $homepath;
-            }
-            // Calculate Database Size
-            $result = $wpdb->get_results( 'SHOW TABLE STATUS', ARRAY_A );
-            $rows   = count( $result );
-            $dbsize = 0;
-            if ( $wpdb->num_rows > 0 ) {
-                foreach ( $result as $row ) {
-                    $dbsize += $row[ "Data_length" ] + $row[ "Index_length" ];
-                }
-            }
-            // Check for .wp-stats file
-            if ( file_exists( $homepath . ".wp-stats") ) {
-                $this->disk_stats = json_decode( file_get_contents( $homepath . ".wp-stats" ), true );
-            } else {
-                $this->disk_stats = (array) "-";
-            }
-            // WordPress and PHP version notifications
-            $wp_latest_version      = 0;
-            $wp_update_available    = 0;
-            $is_php74               = 0;
-            // $phpversion             = substr(PHP_VERSION,0, 5);
-            // get the 'update core' site transient data
-            if ( $update_core_data = get_site_transient( 'update_core' ) ) {
-                $wp_latest_version = $update_core_data->updates[0]->version;
-            }
-            // test WP version
-            if ( version_compare( $wp_latest_version, $wp_version, '>' ) ) {
-                $wp_update_available = 1;
-            }
-            // test for PHP7.4
-            if ( version_compare( PHP_VERSION, '7.4', '=' ) ) {
-                $is_php74 = 1;
-            }
-            // write messages
-            if ( $wp_update_available ) {
-                $wp_version_notice = '<a href="' . admin_url( 'update-core.php') . '" class="pointer orange hint--top hint--rounded hint--bounce" aria-label="A WordPress update is available"><span class="orange dashicons dashicons-update"></span> '. $wp_version . '</a>';
-            } else {
-                $wp_version_notice = '<span class="green hint--top hint--rounded hint--bounce" aria-label="WordPress is up to date"><span class="dashicons dashicons-yes"></span>' . $wp_version . '</span>';
-            }
-            // Test PHP version
-            $php_version_notice = '<span class="red hint--top-left hint--rounded hint--bounce" aria-label="Error reading PHP version"><span class="red dashicons dashicons-warning"></span>ERROR</span>';
-            if ( version_compare(PHP_VERSION, '8.4', '>=') ) {
-                $php_version_notice = '<span class="red hint--bottom-left hint--error hint--rounded hint--bounce hint--large" aria-label="PHP '. PHP_VERSION .' support is in BETA. Test carefully!"><span class="red dashicons dashicons-warning"></span>' . PHP_VERSION . '</span>';
-            }
-            if ( version_compare(PHP_VERSION, '8', '>=') && version_compare(PHP_VERSION, '8.4', '<') ) {
-                $php_version_notice = '<span class="orange hint--bottom-left hint--rounded hint--bounce hint--large" aria-label="WordPress core is compatible with PHP ' . PHP_VERSION . ', but some plugins and themes may not be. Test your site carefully. Contact WP NET Support for help."><span class="orange dashicons dashicons-warning"></span>' . PHP_VERSION . '</span>';
-            }     
-            if ( version_compare(PHP_VERSION, '7.4', '>=') && version_compare(PHP_VERSION, '8', '<') ) {
-                $php_version_notice = '<span class="red hint--bottom-left hint--rounded hint--bounce hint--large" aria-label="PHP ' . PHP_VERSION . ' is compatible with WordPress, but has reached end-of-life. Contact WP NET Support for help."><span class="red dashicons dashicons-warning"></span>' . PHP_VERSION . '</span>';
-            }                        
-            if ( version_compare(PHP_VERSION, '7.4', '<') ) {
-                $php_version_notice = '<span class="red hint--bottom-left hint--rounded hint--bounce hint--large" aria-label="You are running an outdated and unsupported version of PHP! Contact WP NET Support for help."><span class="red dashicons dashicons-warning"></span> v' . PHP_VERSION . '</span>';
-            }                  
-            if ( strlen($memory_limit) >= 6 ) {
-                $memory_notice = '<span class="hint--top-left hint--rounded hint--bounce" aria-label="Memory used to load this page"><span class="green">' . size_format( $memory_usage ) . '</span></span>';
-            } else {
-                $memory_notice = '<span class="hint--top-left hint--rounded hint--bounce" aria-label="Memory used / Memory available"><span class="green">' . size_format( $memory_usage ) . '</span>' . '<small>/' . $memory_limit . 'B</small></span>';
-            }
-            $max_upload_notice = '<span class="hint--top hint--rounded hint--bounce" aria-label="Maximum file upload size">' . ini_get('upload_max_filesize') . 'B<span>';
-            // WordPress version, PHP version, max upload size & memory usage
-            $topitems = array(
-                'WordPress'  => $wp_version_notice,
-                'PHP'        => $php_version_notice,
-                'Max Upload' => $max_upload_notice,
-                'Memory'     => $memory_notice
-            );
-            echo '<section class="full-width">';
-            foreach ($topitems as $name => $value) {
-                echo '<p><strong class="label">' . $name . ':</strong> <span class="data">' . $value . '</span></p>';
-            }
-            echo '<p><strong class="label">Database:</strong> <span class="data"><span class="hint--top hint--rounded hint--bounce" aria-label="Database size">' . size_format( $dbsize ) . '</span></span></p>';
-            echo '<p><strong class="label">Disk Usage:</strong> <span class="big data">';
-
-            if ( $this->getDiskUseStats( 'wp-content' ) !== '-' ) {
-                echo '<a href="#" class="toggle-link hint--top-left hint--rounded hint--bounce" aria-label="Updated every 6 hours. Click for details." onclick="event.preventDefault();jQuery(\'#wpnet-diskstats\').slideToggle(\'slow\');jQuery(\'#open-indicator\').toggleClass(\'open\')">' . $this->getDiskUseStats() . '<span id="open-indicator" class="dashicons dashicons-arrow-right"></span></a>';
-            } else {
-                echo $this->getDiskUseStats();
-            }
-            echo '</span></p>';
-            echo '</section>';
-
-            if ( $this->getDiskUseStats( 'wp-content' ) !== '-' ) {
-                $diskstats = array(
-                    "wp-content"            => $this->getDiskUseStats( 'wp-content' ),
-                    "Backups"               => $this->getDiskUseStats( 'backups' ),
-                    "&#10551;&nbsp;cache"   => $this->getDiskUseStats( 'cache' ),
-                    "&#10551;&nbsp;plugins" => $this->getDiskUseStats( 'plugins' ),
-                    "&#10551;&nbsp;themes"  => $this->getDiskUseStats( 'themes' ),
-                    "&#10551;&nbsp;uploads" => $this->getDiskUseStats( 'uploads' ),
-                );
-                echo '<section id="wpnet-diskstats" class="full-width" style="display:none">';
-                foreach ($diskstats as $name => $value) {
-                    echo '<p><strong class="label">' . $name . ':</strong> <span class="data">' . $value . '</span></p>';
-                }
-                echo '<p class="full-width note">Disk usage information updated every 6 hours</p>';
-                echo '</section>';
-            }
-            // misc notifications
-            if ( $wp_update_available /*|| 1 == 1 */)  {
-                   echo '<section><p><span class="orange dashicons dashicons-warning"></span> <strong><a class="hint--top hint--rounded hint--bounce" href="'. admin_url( 'update-core.php') . '" aria-label="Click to update WordPress">WordPress '. $wp_latest_version . ' is available</a>!</strong></p></section>';
-               }
-            // Widget footer
-            echo wpautop ( stripslashes( '<div class="widget-footer"><p><a href="https://my.wpnet.nz/submitticket.php" class="button button-primary button-large" target="_blank">Open Support Ticket</a> <a href="https://my.wpnet.nz/knowledgebase" class="button button-primary button-large" target="_blank">KnowledgeBase</a> <a href="https://my.wpnet.nz" class="button button-large" target="_blank">My WP NET</a></p><p style="margin-top:10px"><span class="blue dashicons dashicons-lightbulb"></span><a href="https://wpnet.nz/wordpress-php/" target="blank">Read about WordPress and PHP compatibility</a></p></div>' ) );
-        }
-        // get memory info
-        private function getMemoryInfo() {
-            $memory['memory_limit'] = ini_get( 'memory_limit' );
-            $memory['memory_usage'] = function_exists( 'memory_get_usage' ) ? round( memory_get_usage(), 2 ) : 0;
-            return $memory;
-        }
-        // get disk use for $dir
-        private function getDiskUseStats( $dir = 'webroot' ) {
-            return $this->disk_stats[$dir] == "" ? "-" : $this->disk_stats[$dir];
-        }
-    }
-    if ( ! defined( 'WPNET_INFO_WIDGET_DISABLE' ) || WPNET_INFO_WIDGET_DISABLE == false ) {
-        global $WPNET_Site_Info_Widget;
-        $WPNET_Site_Info_Widget = new WPNET_Site_Info_Widget();
-    }
+	
+	class WPNET_Site_Info_Widget {
+		
+		/**
+		 * Disk statistics cache
+		 *
+		 * @var array
+		 */
+		private $disk_stats = array();
+		
+		/**
+		 * Constructor - sets up hooks
+		 */
+		public function __construct() {
+			if ( ! $this->should_show_widget() ) {
+				return;
+			}
+			
+			$hook = ( is_main_site() && is_multisite() ) ? 'wp_network_dashboard_setup' : 'wp_dashboard_setup';
+			add_action( $hook, array( $this, 'setup_site_info_widget' ) );
+			add_action( 'wp_ajax_wpnet_get_site_info', array( $this, 'ajax_get_site_info' ) );
+		}
+		
+		/**
+		 * Check if widget should be displayed
+		 *
+		 * @return bool
+		 */
+		private function should_show_widget(): bool {
+			if ( defined( 'WPNET_INFO_WIDGET_DISABLE' ) && WPNET_INFO_WIDGET_DISABLE === true ) {
+				return false;
+			}
+			
+			if ( is_multisite() && ! is_main_site() ) {
+				return ! ( defined( 'WPNET_INFO_WIDGET_WPMU_DISABLE' ) && WPNET_INFO_WIDGET_WPMU_DISABLE === true );
+			}
+			
+			return true;
+		}
+		
+		/**
+		 * Register dashboard widget
+		 */
+		public function setup_site_info_widget(): void {
+			wp_add_dashboard_widget(
+				'site_info_widget',
+				sprintf( 'WP NET - Site Info <span class="title-version">v%s</span>', esc_html( WPNET_INIT_PLUGIN_VERSION ) ),
+				array( $this, 'site_info_dashboard_widget' )
+			);
+			add_action( 'admin_enqueue_scripts', array( $this, 'site_info_widget_css' ) );
+			add_action( 'admin_enqueue_scripts', array( $this, 'site_info_widget_js' ) );
+		}
+		
+		/**
+	 * Output the dashboard widget content
+	 */
+	public function site_info_dashboard_widget(): void {
+		// Try to get cached content (6 hour cache)
+		$cache_key = 'wpnet_site_info_html';
+		$cached_html = get_site_transient( $cache_key );
+		
+		if ( false !== $cached_html ) {
+			echo $cached_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			return;
+		}
+		
+		// Generate fresh content
+		ob_start();
+		$this->render_site_info_content();
+		$html = ob_get_clean();
+		
+		// Cache for 6 hours (21600 seconds)
+		set_site_transient( $cache_key, $html, 21600 );
+		
+		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+	
+	/**
+	 * Add CSS for the widget - Mobile-responsive grid layout
+	 */
+	public function site_info_widget_css(): void {
+			$custom_css = '
+				/* Main widget container */
+				#site_info_widget .inside { padding: 12px; }
+				
+				/* Grid layout for info items */
+				#site_info_widget .wpnet-info-grid {
+					display: grid;
+					grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+					gap: 12px;
+					margin-bottom: 6px;
+					padding-bottom: 6px;
+				}
+				
+				#site_info_widget .wpnet-info-item {
+					display: flex;
+					justify-content: space-between;
+					align-items: center;
+					padding: 0 12px;
+					background: #f6f7f7;
+					border-radius: 4px;
+					min-height: 42px;
+				}
+				
+				#site_info_widget .wpnet-info-item .label {
+					font-weight: 600;
+					color: #1d2327;
+					margin-right: 8px;
+				}
+				
+				#site_info_widget .wpnet-info-item .data {
+					font-size: 1.1em;
+					text-align: right;
+					white-space: nowrap;
+				}
+				
+				/* Disk usage section */
+				#site_info_widget .wpnet-disk-usage {
+					margin-bottom: 16px;
+					padding-bottom: 16px;
+					border-bottom: 1px solid #dcdcde;
+				}
+				
+				#site_info_widget .wpnet-disk-usage .big {
+					font-size: 1.8em;
+					font-weight: 300;
+					line-height: 1;
+				}
+				
+				#site_info_widget .wpnet-disk-details {
+					display: grid;
+					grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+					gap: 8px;
+					margin-top: 12px;
+					padding: 12px;
+					background: #f6f7f7;
+					border-radius: 4px;
+				}
+				
+				#site_info_widget .wpnet-disk-details .wpnet-info-item {
+					background: #fff;
+					min-height: 36px;
+				}
+				
+				#site_info_widget .wpnet-disk-details .note {
+					grid-column: 1 / -1;
+					font-style: italic;
+					color: #646970;
+					font-size: 0.9em;
+					text-align: center;
+					margin: 8px 0 0;
+					background: transparent;
+				}
+				
+				/* Notifications */
+				#site_info_widget .wpnet-notification {
+					background: #fff3cd;
+					border-left: 4px solid #ffc107;
+					padding: 12px;
+					margin-bottom: 16px;
+					border-radius: 4px;
+				}
+				
+				#site_info_widget .wpnet-notification .dashicons {
+					color: #ff9800;
+					margin-right: 4px;
+				}
+				
+				/* Widget footer */
+				#site_info_widget .widget-footer {
+					border-top: 1px solid #dcdcde;
+					padding-top: 12px;
+					text-align: center;
+				}
+				
+				#site_info_widget .widget-footer .button {
+					margin: 4px;
+				}
+				
+				#site_info_widget .widget-footer p {
+					margin: 8px 0;
+				}
+				
+				/* Version badge in title */
+				#site_info_widget h2 .title-version {
+					color: #787c82;
+					font-weight: 400;
+					font-size: 0.9em;
+				}
+				
+				/* Status colors */
+				#site_info_widget .green { color: #00a32a; }
+				#site_info_widget .red { color: #d63638; }
+				#site_info_widget .orange { color: #ff9800; }
+				#site_info_widget .blue { color: #2271b1; }
+				#site_info_widget .grey { color: #dcdcde; }
+				
+				/* Clickable disk usage div */
+				#site_info_widget .wpnet-disk-usage-toggle[data-has-details="yes"] {
+					cursor: pointer;
+					transition: background-color 0.2s ease;
+				}
+				
+				#site_info_widget .wpnet-disk-usage-toggle[data-has-details="yes"]:hover {
+					background-color: #eaeaea;
+				}
+				
+				#site_info_widget .wpnet-disk-usage-toggle .dashicons {
+					transition: transform 0.3s ease;
+					margin-left: 4px;
+				}
+				
+				#site_info_widget .wpnet-disk-usage-toggle .dashicons.open {
+					transform: rotate(90deg);
+				}
+				
+				#site_info_widget .wpnet-disk-usage-toggle[data-has-details="yes"]:focus {
+					box-shadow: none;
+					outline: 2px solid #2271b1;
+					outline-offset: 2px;
+				}
+				
+				/* Mobile responsive */
+				@media screen and (max-width: 782px) {
+					#site_info_widget .wpnet-info-grid {
+						grid-template-columns: 1fr;
+					}
+					
+					#site_info_widget .wpnet-info-item {
+						flex-direction: column;
+						align-items: flex-start;
+						gap: 4px;
+					}
+					
+					#site_info_widget .wpnet-info-item .data {
+						text-align: left;
+					}
+					
+					#site_info_widget .widget-footer .button {
+						display: block;
+						width: 100%;
+						margin: 8px 0;
+					}
+				}
+				
+				/* Hint.css tooltips - minified version */
+				[class*=hint--]{position:relative;display:inline-block}
+				[class*=hint--]:after,[class*=hint--]:before{position:absolute;transform:translate3d(0,0,0);visibility:hidden;opacity:0;z-index:1000000;pointer-events:none;transition:.3s ease;transition-delay:0s}
+				[class*=hint--]:hover:after,[class*=hint--]:hover:before{visibility:visible;opacity:1;transition-delay:.1s}
+				[class*=hint--]:before{content:"";position:absolute;background:0 0;border:6px solid transparent;z-index:1000001}
+				[class*=hint--]:after{background:#383838;color:#fff;padding:8px 10px;font-size:12px;line-height:12px;white-space:nowrap;border-radius:4px;box-shadow:4px 4px 8px rgba(0,0,0,.3)}
+				[class*=hint--][aria-label]:after{content:attr(aria-label)}
+				.hint--top:before{border-top-color:#383838}
+				.hint--top:after,.hint--top:before{bottom:100%;left:50%}
+				.hint--top:before{margin-bottom:-11px;left:calc(50% - 6px)}
+				.hint--top:after{transform:translateX(-50%)}
+				.hint--top:hover:before{transform:translateY(-8px)}
+				.hint--top:hover:after{transform:translateX(-50%) translateY(-8px)}
+				.hint--top-left:before{border-top-color:#383838}
+				.hint--top-left:after,.hint--top-left:before{bottom:100%;left:50%}
+				.hint--top-left:before{margin-bottom:-11px;left:calc(50% - 6px)}
+				.hint--top-left:after{transform:translateX(-100%);margin-left:12px}
+				.hint--top-left:hover:before{transform:translateY(-8px)}
+				.hint--top-left:hover:after{transform:translateX(-100%) translateY(-8px)}
+				.hint--bottom-left:before{border-bottom-color:#383838}
+				.hint--bottom-left:after,.hint--bottom-left:before{top:100%;left:50%}
+				.hint--bottom-left:before{margin-top:-11px;left:calc(50% - 6px)}
+				.hint--bottom-left:after{transform:translateX(-100%);margin-left:12px}
+				.hint--bottom-left:hover:before{transform:translateY(8px)}
+				.hint--bottom-left:hover:after{transform:translateX(-100%) translateY(8px)}
+				.hint--error:after{background-color:#d63638}
+				.hint--error.hint--top-left:before,.hint--error.hint--top:before{border-top-color:#d63638}
+				.hint--error.hint--bottom-left:before{border-bottom-color:#d63638}
+				.hint--large:after{white-space:normal;line-height:1.4em;word-wrap:break-word;width:300px}
+				.hint--rounded:after{border-radius:4px}
+				.hint--bounce:after,.hint--bounce:before{transition:opacity .3s ease,visibility .3s ease,transform .3s cubic-bezier(.71,1.7,.77,1.24)}
+				
+				/* Loading state */
+				#site_info_widget .wpnet-loading {
+					text-align: center;
+					padding: 40px 20px;
+					color: #646970;
+				}
+				
+				#site_info_widget .wpnet-loading .spinner {
+					visibility: visible;
+					float: none;
+					margin: 0 auto 10px;
+				}
+				
+				#site_info_widget .wpnet-error {
+					background: #fcf0f1;
+					border-left: 4px solid #d63638;
+					padding: 12px;
+					margin: 12px 0;
+					border-radius: 4px;
+					color: #50575e;
+				}
+			';
+			wp_add_inline_style( 'dashboard', $custom_css );
+		}
+		
+		/**
+		 * Enqueue JavaScript for widget
+		 */
+		public function site_info_widget_js(): void {
+			$screen = get_current_screen();
+			if ( ! $screen ) {
+				return;
+			}
+			
+			// Check if we're on a dashboard page
+			$is_dashboard = ( strpos( $screen->id, 'dashboard' ) !== false );
+			if ( ! $is_dashboard ) {
+				return;
+			}
+			
+		$inline_js = "
+		(function($) {
+			'use strict';
+			
+			$(document).ready(function() {
+				// Handle disk usage toggle clicks
+				$('#site_info_widget').on('click', '.wpnet-disk-usage-toggle[data-has-details=\"yes\"]', function(e) {
+					e.preventDefault();
+					$('#wpnet-diskstats').slideToggle('slow');
+					$('#open-indicator').toggleClass('open');
+				});
+			});
+		})(jQuery);
+		";
+		
+		wp_add_inline_script( 'dashboard', $inline_js );
+	}
+	
+	/**
+	 * Render the actual site info content
+	 */
+	private function render_site_info_content(): void {
+			global $wpdb, $wp_version;
+			
+			// Load wp-admin/includes/file.php if get_home_path doesn't exist
+			if ( ! function_exists( 'get_home_path' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/file.php';
+			}
+			
+			// Get home path
+			$homepath = ( get_home_path() === '/' ) ? ABSPATH : get_home_path();
+			
+			// Get memory info
+			$memory = $this->get_memory_info();
+			
+			// Load disk stats
+			$this->load_disk_stats( $homepath );
+			
+			// Get database size
+			$dbsize = $this->get_database_size();
+			
+			// Get version info
+			$wp_version_notice = $this->get_wp_version_notice( $wp_version );
+			$php_version_notice = $this->get_php_version_notice();
+			$memory_notice = $this->get_memory_notice( $memory );
+			$max_upload_notice = $this->get_upload_limit_notice();
+			?>
+			<div class="wpnet-info-grid">
+				<div class="wpnet-info-item">
+					<span class="label"><?php esc_html_e( 'WordPress', 'wpnet' ); ?>:</span>
+					<span class="data"><?php echo wp_kses_post( $wp_version_notice ); ?></span>
+				</div>
+				<div class="wpnet-info-item">
+					<span class="label"><?php esc_html_e( 'PHP', 'wpnet' ); ?>:</span>
+					<span class="data"><?php echo wp_kses_post( $php_version_notice ); ?></span>
+				</div>
+				<div class="wpnet-info-item">
+					<span class="label"><?php esc_html_e( 'Max Upload', 'wpnet' ); ?>:</span>
+					<span class="data"><?php echo wp_kses_post( $max_upload_notice ); ?></span>
+				</div>
+				<div class="wpnet-info-item">
+					<span class="label"><?php esc_html_e( 'Memory', 'wpnet' ); ?>:</span>
+					<span class="data"><?php echo wp_kses_post( $memory_notice ); ?></span>
+				</div>
+				<div class="wpnet-info-item">
+					<span class="label"><?php esc_html_e( 'Database', 'wpnet' ); ?>:</span>
+					<span class="data">
+						<span class="hint--top hint--rounded hint--bounce" aria-label="<?php esc_attr_e( 'Database size', 'wpnet' ); ?>">
+							<?php echo esc_html( size_format( $dbsize ) ); ?>
+						</span>
+					</span>
+				</div>
+				<div class="wpnet-info-item wpnet-disk-usage-toggle" data-has-details="<?php echo esc_attr( $this->get_disk_stat( 'wp-content' ) !== '-' ? 'yes' : 'no' ); ?>" title="<?php echo esc_attr( $this->get_disk_stat( 'wp-content' ) !== '-' ? __( 'Updated every 6 hours. Click for details.', 'wpnet' ) : '' ); ?>">
+					<span class="label"><?php esc_html_e( 'Disk Usage', 'wpnet' ); ?>:</span>
+					<span class="data big">
+						<?php echo esc_html( $this->get_disk_stat( 'webroot' ) ); ?>
+						<?php if ( $this->get_disk_stat( 'wp-content' ) !== '-' ) : ?>
+							<span id="open-indicator" class="dashicons dashicons-arrow-right"></span>
+						<?php endif; ?>
+					</span>
+				</div>
+			</div>
+			
+			<?php $this->output_disk_details(); ?>
+			
+			<?php $this->output_wp_update_notification(); ?>
+			
+			<?php $this->output_widget_footer(); ?>
+			<?php
+		}
+		
+		/**
+		 * Get memory information
+		 *
+		 * @return array
+		 */
+		private function get_memory_info(): array {
+			return array(
+				'memory_limit' => ini_get( 'memory_limit' ),
+				'memory_usage' => function_exists( 'memory_get_usage' ) ? round( memory_get_usage(), 2 ) : 0,
+			);
+		}
+		
+		/**
+		 * Load disk statistics from file
+		 *
+		 * @param string $homepath
+		 */
+		private function load_disk_stats( string $homepath ): void {
+			$stats_file = $homepath . '.wp-stats';
+			
+			if ( file_exists( $stats_file ) ) {
+				$decoded = json_decode( file_get_contents( $stats_file ), true );
+				$this->disk_stats = is_array( $decoded ) ? $decoded : array();
+			} else {
+				$this->disk_stats = array();
+			}
+		}
+		
+		/**
+		 * Get database size
+		 *
+		 * @return int Database size in bytes
+		 */
+		private function get_database_size(): int {
+			global $wpdb;
+			
+			$result = $wpdb->get_results( 'SHOW TABLE STATUS', ARRAY_A );
+			$dbsize = 0;
+			
+			if ( ! empty( $result ) ) {
+				foreach ( $result as $row ) {
+					$dbsize += $row['Data_length'] + $row['Index_length'];
+				}
+			}
+			
+			return $dbsize;
+		}
+		
+		/**
+		 * Get WordPress version status HTML
+		 *
+		 * @param string $wp_version Current WP version
+		 * @return string HTML output
+		 */
+		private function get_wp_version_notice( string $wp_version ): string {
+			$update_core_data = get_site_transient( 'update_core' );
+			$wp_latest_version = ( isset( $update_core_data->updates[0]->version ) ) ? $update_core_data->updates[0]->version : $wp_version;
+			$update_available = version_compare( $wp_latest_version, $wp_version, '>' );
+			
+			if ( $update_available ) {
+				return sprintf(
+					'<a href="%s" class="pointer orange hint--top hint--rounded hint--bounce" aria-label="%s"><span class="orange dashicons dashicons-update"></span> %s</a>',
+					esc_url( admin_url( 'update-core.php' ) ),
+					esc_attr__( 'A WordPress update is available', 'wpnet' ),
+					esc_html( $wp_version )
+				);
+			}
+			
+			return sprintf(
+				'<span class="green hint--top hint--rounded hint--bounce" aria-label="%s"><span class="dashicons dashicons-yes"></span>%s</span>',
+				esc_attr__( 'WordPress is up to date', 'wpnet' ),
+				esc_html( $wp_version )
+			);
+		}
+		
+		/**
+		 * Get PHP version status HTML
+		 *
+		 * @return string HTML output
+		 */
+		private function get_php_version_notice(): string {
+			$php_version = PHP_VERSION;
+			
+			if ( version_compare( $php_version, '8.4', '>=' ) ) {
+				return sprintf(
+					'<span class="red hint--bottom-left hint--error hint--rounded hint--bounce hint--large" aria-label="%s"><span class="red dashicons dashicons-warning"></span>%s</span>',
+					esc_attr( sprintf( __( 'PHP %s support is in BETA. Test carefully!', 'wpnet' ), $php_version ) ),
+					esc_html( $php_version )
+				);
+			}
+			
+			if ( version_compare( $php_version, '8.0', '>=' ) && version_compare( $php_version, '8.4', '<' ) ) {
+				return sprintf(
+					'<span class="orange hint--bottom-left hint--rounded hint--bounce hint--large" aria-label="%s"><span class="orange dashicons dashicons-warning"></span>%s</span>',
+					esc_attr( sprintf( __( 'WordPress core is compatible with PHP %s, but some plugins and themes may not be. Test your site carefully. Contact WP NET Support for help.', 'wpnet' ), $php_version ) ),
+					esc_html( $php_version )
+				);
+			}
+			
+			if ( version_compare( $php_version, '7.4', '>=' ) && version_compare( $php_version, '8.0', '<' ) ) {
+				return sprintf(
+					'<span class="red hint--bottom-left hint--rounded hint--bounce hint--large" aria-label="%s"><span class="red dashicons dashicons-warning"></span>%s</span>',
+					esc_attr( sprintf( __( 'PHP %s is compatible with WordPress, but has reached end-of-life. Contact WP NET Support for help.', 'wpnet' ), $php_version ) ),
+					esc_html( $php_version )
+				);
+			}
+			
+			if ( version_compare( $php_version, '7.4', '<' ) ) {
+				return sprintf(
+					'<span class="red hint--bottom-left hint--rounded hint--bounce hint--large" aria-label="%s"><span class="red dashicons dashicons-warning"></span>v%s</span>',
+					esc_attr__( 'You are running an outdated and unsupported version of PHP! Contact WP NET Support for help.', 'wpnet' ),
+					esc_html( $php_version )
+				);
+			}
+			
+			return sprintf(
+				'<span class="green hint--bottom-left hint--rounded hint--bounce" aria-label="%s">%s</span>',
+				esc_attr__( 'PHP version is supported', 'wpnet' ),
+				esc_html( $php_version )
+			);
+		}
+		
+		/**
+		 * Get memory usage notice HTML
+		 *
+		 * @param array $memory Memory info array
+		 * @return string HTML output
+		 */
+		private function get_memory_notice( array $memory ): string {
+			if ( strlen( $memory['memory_limit'] ) >= 6 ) {
+				return sprintf(
+					'<span class="hint--top-left hint--rounded hint--bounce" aria-label="%s"><span class="green">%s</span></span>',
+					esc_attr__( 'Memory used to load this page', 'wpnet' ),
+					esc_html( size_format( $memory['memory_usage'] ) )
+				);
+			}
+			
+			return sprintf(
+				'<span class="hint--top-left hint--rounded hint--bounce" aria-label="%s"><span class="green">%s</span><small>/%sB</small></span>',
+				esc_attr__( 'Memory used / Memory available', 'wpnet' ),
+				esc_html( size_format( $memory['memory_usage'] ) ),
+				esc_html( $memory['memory_limit'] )
+			);
+		}
+		
+		/**
+		 * Get upload limit notice HTML
+		 *
+		 * @return string HTML output
+		 */
+		private function get_upload_limit_notice(): string {
+			return sprintf(
+				'<span class="hint--top hint--rounded hint--bounce" aria-label="%s">%sB</span>',
+				esc_attr__( 'Maximum file upload size', 'wpnet' ),
+				esc_html( ini_get( 'upload_max_filesize' ) )
+			);
+		}
+		
+		/**
+		 * Output disk usage link/value
+		 */
+		private function output_disk_usage_link(): void {
+			$disk_usage = $this->get_disk_stat( 'webroot' );
+			
+			if ( $this->get_disk_stat( 'wp-content' ) !== '-' ) {
+				printf(
+					'<a href="#" class="wpnet-toggle-diskstats hint--top-left hint--rounded hint--bounce" aria-label="%s">%s<span id="open-indicator" class="dashicons dashicons-arrow-right"></span></a>',
+					esc_attr__( 'Updated every 6 hours. Click for details.', 'wpnet' ),
+					esc_html( $disk_usage )
+				);
+			} else {
+				echo esc_html( $disk_usage );
+			}
+		}
+		
+		/**
+		 * Output detailed disk usage stats
+		 */
+		private function output_disk_details(): void {
+			if ( $this->get_disk_stat( 'wp-content' ) === '-' ) {
+				return;
+			}
+			
+			$diskstats = array(
+				'wp-content'            => $this->get_disk_stat( 'wp-content' ),
+				'Backups'               => $this->get_disk_stat( 'backups' ),
+				'&#10551;&nbsp;cache'   => $this->get_disk_stat( 'cache' ),
+				'&#10551;&nbsp;plugins' => $this->get_disk_stat( 'plugins' ),
+				'&#10551;&nbsp;themes'  => $this->get_disk_stat( 'themes' ),
+				'&#10551;&nbsp;uploads' => $this->get_disk_stat( 'uploads' ),
+			);
+			
+			echo '<div id="wpnet-diskstats" class="wpnet-disk-details" style="display:none;">';
+			
+			foreach ( $diskstats as $name => $value ) {
+				printf(
+					'<div class="wpnet-info-item"><span class="label">%s:</span> <span class="data">%s</span></div>',
+					wp_kses_post( $name ),
+					esc_html( $value )
+				);
+			}
+			
+			printf(
+				'<p class="note">%s</p>',
+				esc_html__( 'Disk usage information updated every 6 hours', 'wpnet' )
+			);
+			
+			echo '</div>';
+		}
+		
+		/**
+		 * Output WordPress update notification if needed
+		 */
+		private function output_wp_update_notification(): void {
+			global $wp_version;
+			
+			$update_core_data = get_site_transient( 'update_core' );
+			$wp_latest_version = ( isset( $update_core_data->updates[0]->version ) ) ? $update_core_data->updates[0]->version : $wp_version;
+			
+			if ( version_compare( $wp_latest_version, $wp_version, '>' ) ) {
+				printf(
+					'<div class="wpnet-notification"><span class="dashicons dashicons-warning"></span> <strong><a class="hint--top hint--rounded hint--bounce" href="%s" aria-label="%s">%s</a>!</strong></div>',
+					esc_url( admin_url( 'update-core.php' ) ),
+					esc_attr__( 'Click to update WordPress', 'wpnet' ),
+					esc_html( sprintf( __( 'WordPress %s is available', 'wpnet' ), $wp_latest_version ) )
+				);
+			}
+		}
+		
+		/**
+		 * Output widget footer with links
+		 */
+		private function output_widget_footer(): void {
+			?>
+			<div class="widget-footer">
+				<p>
+					<a href="https://my.wpnet.nz/submitticket.php" class="button button-primary" target="_blank" rel="noopener">
+						<?php esc_html_e( 'Open Support Ticket', 'wpnet' ); ?>
+					</a>
+					<a href="https://my.wpnet.nz/knowledgebase" class="button button-primary" target="_blank" rel="noopener">
+						<?php esc_html_e( 'KnowledgeBase', 'wpnet' ); ?>
+					</a>
+					<a href="https://my.wpnet.nz" class="button" target="_blank" rel="noopener">
+						<?php esc_html_e( 'My WP NET', 'wpnet' ); ?>
+					</a>
+				</p>
+				<p>
+					<span class="blue dashicons dashicons-lightbulb"></span>
+					<a href="https://wpnet.nz/wordpress-php/" target="_blank" rel="noopener">
+						<?php esc_html_e( 'Read about WordPress and PHP compatibility', 'wpnet' ); ?>
+					</a>
+				</p>
+			</div>
+			<?php
+		}
+		
+		/**
+		 * Get disk usage stat for a specific directory
+		 *
+		 * @param string $dir Directory key
+		 * @return string Formatted disk usage or '-'
+		 */
+		private function get_disk_stat( string $dir = 'webroot' ): string {
+			return isset( $this->disk_stats[ $dir ] ) ? $this->disk_stats[ $dir ] : '-';
+		}
+	}
+	
+	// Initialize widget
+	if ( ! defined( 'WPNET_INFO_WIDGET_DISABLE' ) || WPNET_INFO_WIDGET_DISABLE === false ) {
+		global $WPNET_Site_Info_Widget;
+		$WPNET_Site_Info_Widget = new WPNET_Site_Info_Widget();
+	}
 }
-/*=====  End of WP NET Dashboard Info Widget  ======*/
