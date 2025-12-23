@@ -4,7 +4,7 @@
  * Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
  * Author: WP NET
  * Author URI: https://wpnet.nz
- * Version: 1.6.11
+ * Version: 1.6.12
  * Requires at least: 5.8
  * Requires PHP: 7.4
  */
@@ -361,7 +361,10 @@ if ( is_admin() || is_network_admin() ) {
 					padding: 8px 12px;
 					background: #f6f7f7;
 					border-radius: 4px;
-					
+				}
+
+				#site_info_widget .wpnet-info-item a {
+					text-decoration: none;
 				}
 				
 				#site_info_widget .wpnet-info-item .label {
