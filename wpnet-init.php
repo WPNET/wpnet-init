@@ -4,7 +4,7 @@
  * Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
  * Author: WP NET
  * Author URI: https://wpnet.nz
- * Version: 1.6.5
+ * Version: 1.6.9
  * Requires at least: 5.8
  * Requires PHP: 7.4
  */
@@ -131,7 +131,6 @@ class WPNET_WP_Admin_Branding {
 				padding: 0 0 0.2em 0;
 				border-bottom: 1px solid #f0f0f1;
 			}
-            #wpnet_announcements_rss ul li a {font-size: 1.1em;}
 			#wpnet_announcements_rss ul li:last-child { border-bottom: none; }
 			#wpnet_announcements_rss ul li span.dashicons { margin-left: -1.15em; }
 			#wpnet_announcements_rss ul li .date { color: #999; font-size: 0.9em; }
@@ -245,7 +244,7 @@ class WPNET_WP_Admin_Branding {
 					'<li>
 						<span style="color:#999" class="dashicons dashicons-arrow-right"></span>
 						<a href="%s" title="%s" target="_blank" rel="noopener"><strong>%s</strong></a>
-						<span class="date">%s</span>
+						 - <span class="date">%s</span>
 						<span class="desc" style="display:inline-block">%s</span>
 					</li>',
 					esc_url( $item->get_permalink() ),
@@ -331,26 +330,11 @@ if ( is_admin() || is_network_admin() ) {
 		
 		/**
 	 * Output the dashboard widget content
+	 * Always renders fresh since PHP version, WP version, memory, and DB size change frequently.
+	 * Disk stats are loaded from .wp-stats JSON file which updates independently.
 	 */
 	public function site_info_dashboard_widget(): void {
-		// Try to get cached content (6 hour cache)
-		$cache_key = 'wpnet_site_info_html';
-		$cached_html = get_site_transient( $cache_key );
-		
-		if ( false !== $cached_html ) {
-			echo $cached_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			return;
-		}
-		
-		// Generate fresh content
-		ob_start();
 		$this->render_site_info_content();
-		$html = ob_get_clean();
-		
-		// Cache for 6 hours (21600 seconds)
-		set_site_transient( $cache_key, $html, 21600 );
-		
-		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 	
 	/**
@@ -665,7 +649,7 @@ if ( is_admin() || is_network_admin() ) {
 						</span>
 					</span>
 				</div>
-				<div class="wpnet-info-item wpnet-disk-usage-toggle" data-has-details="<?php echo esc_attr( $this->get_disk_stat( 'wp-content' ) !== '-' ? 'yes' : 'no' ); ?>" title="<?php echo esc_attr( $this->get_disk_stat( 'wp-content' ) !== '-' ? __( 'Updated every 6 hours. Click for details.', 'wpnet' ) : '' ); ?>">
+			<div class="wpnet-info-item wpnet-disk-usage-toggle hint--top hint--rounded hint--bounce" data-has-details="<?php echo esc_attr( $this->get_disk_stat( 'wp-content' ) !== '-' ? 'yes' : 'no' ); ?>" aria-label="<?php echo esc_attr( $this->get_disk_stat( 'wp-content' ) !== '-' ? __( 'Updated every 6 hours. Click for details.', 'wpnet' ) : __( 'Disk usage information', 'wpnet' ) ); ?>">
 					<span class="label"><?php esc_html_e( 'Disk Usage', 'wpnet' ); ?>:</span>
 					<span class="data big">
 						<?php echo esc_html( $this->get_disk_stat( 'webroot' ) ); ?>
