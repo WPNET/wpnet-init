@@ -4,7 +4,7 @@
  * Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
  * Author: WP NET
  * Author URI: https://wpnet.nz
- * Version: 1.6.12
+ * Version: 1.6.14
  * Requires at least: 5.8
  * Requires PHP: 7.4
  */
@@ -647,7 +647,7 @@ if ( is_admin() || is_network_admin() ) {
 				<div class="wpnet-info-item">
 					<span class="label"><?php esc_html_e( 'Database', 'wpnet' ); ?>:</span>
 					<span class="data">
-						<span class="hint--top hint--rounded hint--bounce" aria-label="<?php esc_attr_e( 'Database size', 'wpnet' ); ?>">
+						<span class="hint--top-left hint--rounded hint--bounce" aria-label="<?php esc_attr_e( 'Database size', 'wpnet' ); ?>">
 							<?php echo esc_html( size_format( $dbsize ) ); ?>
 						</span>
 					</span>
@@ -732,7 +732,7 @@ if ( is_admin() || is_network_admin() ) {
 			
 			if ( $update_available ) {
 				return sprintf(
-					'<a href="%s" class="pointer orange hint--top hint--rounded hint--bounce" aria-label="%s"><span class="orange dashicons dashicons-update"></span> %s</a>',
+					'<a href="%s" class="pointer orange hint--top-left hint--rounded hint--bounce" aria-label="%s"><span class="orange dashicons dashicons-update"></span> %s</a>',
 					esc_url( admin_url( 'update-core.php' ) ),
 					esc_attr__( 'A WordPress update is available', 'wpnet' ),
 					esc_html( $wp_version )
@@ -740,7 +740,7 @@ if ( is_admin() || is_network_admin() ) {
 			}
 			
 			return sprintf(
-				'<span class="green hint--top hint--rounded hint--bounce" aria-label="%s"><span class="dashicons dashicons-yes"></span>%s</span>',
+				'<span class="green hint--top-left hint--rounded hint--bounce" aria-label="%s"><span class="dashicons dashicons-yes"></span>%s</span>',
 				esc_attr__( 'WordPress is up to date', 'wpnet' ),
 				esc_html( $wp_version )
 			);
@@ -756,23 +756,23 @@ if ( is_admin() || is_network_admin() ) {
 			
 			if ( version_compare( $php_version, '8.4', '>=' ) ) {
 				return sprintf(
-					'<span class="red hint--bottom-left hint--error hint--rounded hint--bounce hint--large" aria-label="%s"><span class="red dashicons dashicons-warning"></span>%s</span>',
+					'<span class="red hint--top-left hint--error hint--rounded hint--bounce hint--large" aria-label="%s"><span class="red dashicons dashicons-warning"></span>%s</span>',
 					esc_attr( sprintf( __( 'PHP %s support is in BETA. Test carefully!', 'wpnet' ), $php_version ) ),
 					esc_html( $php_version )
 				);
 			}
 			
-			if ( version_compare( $php_version, '8.0', '>=' ) && version_compare( $php_version, '8.4', '<' ) ) {
+			if ( version_compare( $php_version, '8.2', '>=' ) && version_compare( $php_version, '8.4', '<' ) ) {
 				return sprintf(
-					'<span class="orange hint--bottom-left hint--rounded hint--bounce hint--large" aria-label="%s"><span class="orange dashicons dashicons-warning"></span>%s</span>',
-					esc_attr( sprintf( __( 'WordPress core is compatible with PHP %s, but some plugins and themes may not be. Test your site carefully. Contact WP NET Support for help.', 'wpnet' ), $php_version ) ),
+					'<span class="green hint--top-left hint--rounded hint--bounce hint--large" aria-label="%s"><span class="green dashicons dashicons-yes"></span>%s</span>',
+					esc_attr( sprintf( __( 'WordPress core, themes & plugins should be compatible with PHP %s.', 'wpnet' ), $php_version ) ),
 					esc_html( $php_version )
 				);
 			}
 			
-			if ( version_compare( $php_version, '7.4', '>=' ) && version_compare( $php_version, '8.0', '<' ) ) {
+			if ( version_compare( $php_version, '7.4', '>=' ) && version_compare( $php_version, '8.2', '<' ) ) {
 				return sprintf(
-					'<span class="red hint--bottom-left hint--rounded hint--bounce hint--large" aria-label="%s"><span class="red dashicons dashicons-warning"></span>%s</span>',
+					'<span class="orange hint--error hint--top-left hint--rounded hint--bounce hint--large" aria-label="%s"><span class="orange dashicons dashicons-warning"></span>%s</span>',
 					esc_attr( sprintf( __( 'PHP %s is compatible with WordPress, but has reached end-of-life. Contact WP NET Support for help.', 'wpnet' ), $php_version ) ),
 					esc_html( $php_version )
 				);
@@ -780,14 +780,14 @@ if ( is_admin() || is_network_admin() ) {
 			
 			if ( version_compare( $php_version, '7.4', '<' ) ) {
 				return sprintf(
-					'<span class="red hint--bottom-left hint--rounded hint--bounce hint--large" aria-label="%s"><span class="red dashicons dashicons-warning"></span>v%s</span>',
+					'<span class="red hint--error hint--top-left hint--rounded hint--bounce hint--large" aria-label="%s"><span class="red dashicons dashicons-warning"></span>v%s</span>',
 					esc_attr__( 'You are running an outdated and unsupported version of PHP! Contact WP NET Support for help.', 'wpnet' ),
 					esc_html( $php_version )
 				);
 			}
 			
 			return sprintf(
-				'<span class="green hint--bottom-left hint--rounded hint--bounce" aria-label="%s">%s</span>',
+				'<span class="green hint--top-left hint--rounded hint--bounce" aria-label="%s">%s</span>',
 				esc_attr__( 'PHP version is supported', 'wpnet' ),
 				esc_html( $php_version )
 			);
@@ -823,7 +823,7 @@ if ( is_admin() || is_network_admin() ) {
 		 */
 		private function get_upload_limit_notice(): string {
 			return sprintf(
-				'<span class="hint--top hint--rounded hint--bounce" aria-label="%s">%sB</span>',
+				'<span class="hint--top-left hint--rounded hint--bounce" aria-label="%s">%sB</span>',
 				esc_attr__( 'Maximum file upload size', 'wpnet' ),
 				esc_html( ini_get( 'upload_max_filesize' ) )
 			);
@@ -837,7 +837,7 @@ if ( is_admin() || is_network_admin() ) {
 			
 			if ( $this->get_disk_stat( 'wp-content' ) !== '-' ) {
 				printf(
-					'<a href="#" class="wpnet-toggle-diskstats hint--top-left hint--rounded hint--bounce" aria-label="%s">%s<span id="open-indicator" class="dashicons dashicons-arrow-right"></span></a>',
+					'<a href="#" class="wpnet-toggle-diskstats hint--top-right hint--rounded hint--bounce" aria-label="%s">%s<span id="open-indicator" class="dashicons dashicons-arrow-right"></span></a>',
 					esc_attr__( 'Updated every 6 hours. Click for details.', 'wpnet' ),
 					esc_html( $disk_usage )
 				);
