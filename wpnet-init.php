@@ -1,10 +1,10 @@
 <?php
 /**
  * Plugin Name: WP NET Init
- * Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, loads additional plugins, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
+ * Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
  * Author: WP NET
  * Author URI: https://wpnet.nz
- * Version: 1.6.11
+ * Version: 1.6.23
  * Requires at least: 5.8
  * Requires PHP: 7.4
  */
@@ -361,7 +361,10 @@ if ( is_admin() || is_network_admin() ) {
 					padding: 8px 12px;
 					background: #f6f7f7;
 					border-radius: 4px;
-					
+				}
+
+				#site_info_widget .wpnet-info-item a {
+					text-decoration: none;
 				}
 				
 				#site_info_widget .wpnet-info-item .label {
@@ -391,7 +394,7 @@ if ( is_admin() || is_network_admin() ) {
 				
 				#site_info_widget .wpnet-disk-details {
 					display: grid;
-					grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+					grid-template-columns: repeat(6, 1fr);
 					gap: 8px;
 					margin-top: 12px;
 					padding: 12px;
@@ -402,6 +405,19 @@ if ( is_admin() || is_network_admin() ) {
 				#site_info_widget .wpnet-disk-details .wpnet-info-item {
 					background: #fff;
 					padding: 8px 12px;
+				}
+				
+				/* First row: wp-content and backups (50% each) */
+				#site_info_widget .wpnet-disk-details .wpnet-info-item:nth-child(1),
+				#site_info_widget .wpnet-disk-details .wpnet-info-item:nth-child(2) {
+					grid-column: span 3;
+				}
+				
+				/* Second row: plugins, themes, uploads (33% each) */
+				#site_info_widget .wpnet-disk-details .wpnet-info-item:nth-child(3),
+				#site_info_widget .wpnet-disk-details .wpnet-info-item:nth-child(4),
+				#site_info_widget .wpnet-disk-details .wpnet-info-item:nth-child(5) {
+					grid-column: span 2;
 				}
 				
 				#site_info_widget .wpnet-disk-details .note {
@@ -644,12 +660,12 @@ if ( is_admin() || is_network_admin() ) {
 				<div class="wpnet-info-item">
 					<span class="label"><?php esc_html_e( 'Database', 'wpnet' ); ?>:</span>
 					<span class="data">
-						<span class="hint--top hint--rounded hint--bounce" aria-label="<?php esc_attr_e( 'Database size', 'wpnet' ); ?>">
+						<span class="hint--top-left hint--rounded hint--bounce" aria-label="<?php esc_attr_e( 'Database size', 'wpnet' ); ?>">
 							<?php echo esc_html( size_format( $dbsize ) ); ?>
 						</span>
 					</span>
 				</div>
-			<div class="wpnet-info-item wpnet-disk-usage-toggle hint--top hint--rounded hint--bounce" data-has-details="<?php echo esc_attr( $this->get_disk_stat( 'wp-content' ) !== '-' ? 'yes' : 'no' ); ?>" aria-label="<?php echo esc_attr( $this->get_disk_stat( 'wp-content' ) !== '-' ? __( 'Updated every 6 hours. Click for details.', 'wpnet' ) : __( 'Disk usage information', 'wpnet' ) ); ?>">
+			<div class="wpnet-info-item wpnet-disk-usage-toggle hint--top hint--rounded hint--bounce" data-has-details="<?php echo esc_attr( $this->get_disk_stat( 'wp-content' ) !== '-' ? 'yes' : 'no' ); ?>" aria-label="<?php echo esc_attr( $this->get_disk_stat( 'wp-content' ) !== '-' ? __( 'Updated every 2 hours. Click for details.', 'wpnet' ) : __( 'Disk usage information', 'wpnet' ) ); ?>">
 					<span class="label"><?php esc_html_e( 'Disk Usage', 'wpnet' ); ?>:</span>
 					<span class="data big">
 						<?php echo esc_html( $this->get_disk_stat( 'webroot' ) ); ?>
@@ -729,7 +745,7 @@ if ( is_admin() || is_network_admin() ) {
 			
 			if ( $update_available ) {
 				return sprintf(
-					'<a href="%s" class="pointer orange hint--top hint--rounded hint--bounce" aria-label="%s"><span class="orange dashicons dashicons-update"></span> %s</a>',
+					'<a href="%s" class="pointer orange hint--top-left hint--rounded hint--bounce" aria-label="%s"><span class="orange dashicons dashicons-update"></span> %s</a>',
 					esc_url( admin_url( 'update-core.php' ) ),
 					esc_attr__( 'A WordPress update is available', 'wpnet' ),
 					esc_html( $wp_version )
@@ -737,7 +753,7 @@ if ( is_admin() || is_network_admin() ) {
 			}
 			
 			return sprintf(
-				'<span class="green hint--top hint--rounded hint--bounce" aria-label="%s"><span class="dashicons dashicons-yes"></span>%s</span>',
+				'<span class="green hint--top-left hint--rounded hint--bounce" aria-label="%s"><span class="dashicons dashicons-yes"></span>%s</span>',
 				esc_attr__( 'WordPress is up to date', 'wpnet' ),
 				esc_html( $wp_version )
 			);
@@ -753,23 +769,23 @@ if ( is_admin() || is_network_admin() ) {
 			
 			if ( version_compare( $php_version, '8.4', '>=' ) ) {
 				return sprintf(
-					'<span class="red hint--bottom-left hint--error hint--rounded hint--bounce hint--large" aria-label="%s"><span class="red dashicons dashicons-warning"></span>%s</span>',
+					'<span class="red hint--top-left hint--error hint--rounded hint--bounce hint--large" aria-label="%s"><span class="red dashicons dashicons-warning"></span>%s</span>',
 					esc_attr( sprintf( __( 'PHP %s support is in BETA. Test carefully!', 'wpnet' ), $php_version ) ),
 					esc_html( $php_version )
 				);
 			}
 			
-			if ( version_compare( $php_version, '8.0', '>=' ) && version_compare( $php_version, '8.4', '<' ) ) {
+			if ( version_compare( $php_version, '8.2', '>=' ) && version_compare( $php_version, '8.4', '<' ) ) {
 				return sprintf(
-					'<span class="orange hint--bottom-left hint--rounded hint--bounce hint--large" aria-label="%s"><span class="orange dashicons dashicons-warning"></span>%s</span>',
-					esc_attr( sprintf( __( 'WordPress core is compatible with PHP %s, but some plugins and themes may not be. Test your site carefully. Contact WP NET Support for help.', 'wpnet' ), $php_version ) ),
+					'<span class="green hint--top-left hint--rounded hint--bounce hint--large" aria-label="%s"><span class="green dashicons dashicons-yes"></span>%s</span>',
+					esc_attr( sprintf( __( 'WordPress core, themes & plugins should be compatible with PHP %s.', 'wpnet' ), $php_version ) ),
 					esc_html( $php_version )
 				);
 			}
 			
-			if ( version_compare( $php_version, '7.4', '>=' ) && version_compare( $php_version, '8.0', '<' ) ) {
+			if ( version_compare( $php_version, '7.4', '>=' ) && version_compare( $php_version, '8.2', '<' ) ) {
 				return sprintf(
-					'<span class="red hint--bottom-left hint--rounded hint--bounce hint--large" aria-label="%s"><span class="red dashicons dashicons-warning"></span>%s</span>',
+					'<span class="orange hint--error hint--top-left hint--rounded hint--bounce hint--large" aria-label="%s"><span class="orange dashicons dashicons-warning"></span>%s</span>',
 					esc_attr( sprintf( __( 'PHP %s is compatible with WordPress, but has reached end-of-life. Contact WP NET Support for help.', 'wpnet' ), $php_version ) ),
 					esc_html( $php_version )
 				);
@@ -777,14 +793,14 @@ if ( is_admin() || is_network_admin() ) {
 			
 			if ( version_compare( $php_version, '7.4', '<' ) ) {
 				return sprintf(
-					'<span class="red hint--bottom-left hint--rounded hint--bounce hint--large" aria-label="%s"><span class="red dashicons dashicons-warning"></span>v%s</span>',
+					'<span class="red hint--error hint--top-left hint--rounded hint--bounce hint--large" aria-label="%s"><span class="red dashicons dashicons-warning"></span>v%s</span>',
 					esc_attr__( 'You are running an outdated and unsupported version of PHP! Contact WP NET Support for help.', 'wpnet' ),
 					esc_html( $php_version )
 				);
 			}
 			
 			return sprintf(
-				'<span class="green hint--bottom-left hint--rounded hint--bounce" aria-label="%s">%s</span>',
+				'<span class="green hint--top-left hint--rounded hint--bounce" aria-label="%s">%s</span>',
 				esc_attr__( 'PHP version is supported', 'wpnet' ),
 				esc_html( $php_version )
 			);
@@ -820,7 +836,7 @@ if ( is_admin() || is_network_admin() ) {
 		 */
 		private function get_upload_limit_notice(): string {
 			return sprintf(
-				'<span class="hint--top hint--rounded hint--bounce" aria-label="%s">%sB</span>',
+				'<span class="hint--top-left hint--rounded hint--bounce" aria-label="%s">%sB</span>',
 				esc_attr__( 'Maximum file upload size', 'wpnet' ),
 				esc_html( ini_get( 'upload_max_filesize' ) )
 			);
@@ -834,8 +850,8 @@ if ( is_admin() || is_network_admin() ) {
 			
 			if ( $this->get_disk_stat( 'wp-content' ) !== '-' ) {
 				printf(
-					'<a href="#" class="wpnet-toggle-diskstats hint--top-left hint--rounded hint--bounce" aria-label="%s">%s<span id="open-indicator" class="dashicons dashicons-arrow-right"></span></a>',
-					esc_attr__( 'Updated every 6 hours. Click for details.', 'wpnet' ),
+					'<a href="#" class="wpnet-toggle-diskstats hint--top-right hint--rounded hint--bounce" aria-label="%s">%s<span id="open-indicator" class="dashicons dashicons-arrow-right"></span></a>',
+					esc_attr__( 'Updated every 2 hours. Click for details.', 'wpnet' ),
 					esc_html( $disk_usage )
 				);
 			} else {
@@ -854,7 +870,6 @@ if ( is_admin() || is_network_admin() ) {
 			$diskstats = array(
 				'wp-content'            => $this->get_disk_stat( 'wp-content' ),
 				'Backups'               => $this->get_disk_stat( 'backups' ),
-				'&#10551;&nbsp;cache'   => $this->get_disk_stat( 'cache' ),
 				'&#10551;&nbsp;plugins' => $this->get_disk_stat( 'plugins' ),
 				'&#10551;&nbsp;themes'  => $this->get_disk_stat( 'themes' ),
 				'&#10551;&nbsp;uploads' => $this->get_disk_stat( 'uploads' ),
@@ -872,7 +887,7 @@ if ( is_admin() || is_network_admin() ) {
 			
 			printf(
 				'<p class="note">%s</p>',
-				esc_html__( 'Disk usage information updated every 6 hours', 'wpnet' )
+				esc_html__( 'Disk usage information updated every 2 hours', 'wpnet' )
 			);
 			
 			echo '</div>';
