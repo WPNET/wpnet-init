@@ -4,7 +4,7 @@
  * Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
  * Author: WP NET
  * Author URI: https://wpnet.nz
- * Version: 1.6.25
+ * Version: 1.7.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
  */
@@ -213,9 +213,7 @@ class WPNET_WP_Admin_Branding {
 	 */
 	public function announcements_dashboard_widget(): void {
 		include_once ABSPATH . WPINC . '/feed.php';
-		
 		$rss = fetch_feed( 'http://feeds.wpnet.nz/wpnetannouncements' );
-		
 		if ( is_wp_error( $rss ) ) {
 			echo '<p>';
 			if ( current_user_can( 'manage_options' ) ) {
@@ -230,12 +228,9 @@ class WPNET_WP_Admin_Branding {
 			echo '</p>';
 			return;
 		}
-		
 		$maxitems  = $rss->get_item_quantity( 5 );
 		$rss_items = $rss->get_items( 0, $maxitems );
-		
 		echo '<ul>';
-		
 		if ( 0 === $maxitems ) {
 			echo '<li>' . esc_html__( 'No announcements to display.', 'wpnet' ) . '</li>';
 		} else {
@@ -255,9 +250,7 @@ class WPNET_WP_Admin_Branding {
 				);
 			}
 		}
-		
 		echo '</ul>';
-		
 		$rss->__destruct();
 		unset( $rss );
 	}
@@ -407,16 +400,15 @@ if ( is_admin() || is_network_admin() ) {
 					padding: 8px 12px;
 				}
 				
-				/* First row: wp-content and backups (50% each) */
-				#site_info_widget .wpnet-disk-details .wpnet-info-item:nth-child(1),
-				#site_info_widget .wpnet-disk-details .wpnet-info-item:nth-child(2) {
-					grid-column: span 3;
+				/* First row: */
+				#site_info_widget .wpnet-disk-details .wpnet-info-item:nth-child(1) {
+					grid-column: span 6;
 				}
 				
-				/* Second row: plugins, themes, uploads (33% each) */
+				/* Second row:*/
+				#site_info_widget .wpnet-disk-details .wpnet-info-item:nth-child(2),
 				#site_info_widget .wpnet-disk-details .wpnet-info-item:nth-child(3),
-				#site_info_widget .wpnet-disk-details .wpnet-info-item:nth-child(4),
-				#site_info_widget .wpnet-disk-details .wpnet-info-item:nth-child(5) {
+				#site_info_widget .wpnet-disk-details .wpnet-info-item:nth-child(4) {
 					grid-column: span 2;
 				}
 				
@@ -665,7 +657,7 @@ if ( is_admin() || is_network_admin() ) {
 						</span>
 					</span>
 				</div>
-			<div class="wpnet-info-item wpnet-disk-usage-toggle hint--top hint--rounded hint--bounce" data-has-details="<?php echo esc_attr( $this->get_disk_stat( 'wp-content' ) !== '-' ? 'yes' : 'no' ); ?>" aria-label="<?php echo esc_attr( $this->get_disk_stat( 'wp-content' ) !== '-' ? __( 'Updated every 2 hours. Click for details.', 'wpnet' ) : __( 'Disk usage information', 'wpnet' ) ); ?>">
+			<div class="wpnet-info-item wpnet-disk-usage-toggle hint--top hint--rounded hint--bounce" data-has-details="<?php echo esc_attr( $this->get_disk_stat( 'wp-content' ) !== '-' ? 'yes' : 'no' ); ?>" aria-label="<?php echo esc_attr( $this->get_disk_stat( 'wp-content' ) !== '-' ? __( 'Web root total size. Click for more.', 'wpnet' ) : __( 'Disk usage data', 'wpnet' ) ); ?>">
 					<span class="label"><?php esc_html_e( 'Disk Usage', 'wpnet' ); ?>:</span>
 					<span class="data big">
 						<?php echo esc_html( $this->get_disk_stat( 'webroot' ) ); ?>
@@ -851,7 +843,7 @@ if ( is_admin() || is_network_admin() ) {
 			if ( $this->get_disk_stat( 'wp-content' ) !== '-' ) {
 				printf(
 					'<a href="#" class="wpnet-toggle-diskstats hint--top-right hint--rounded hint--bounce" aria-label="%s">%s<span id="open-indicator" class="dashicons dashicons-arrow-right"></span></a>',
-					esc_attr__( 'Updated every 2 hours. Click for details.', 'wpnet' ),
+					esc_attr__( 'Web root total size.Updated every 2 hours. Click for more.', 'wpnet' ),
 					esc_html( $disk_usage )
 				);
 			} else {
@@ -868,11 +860,10 @@ if ( is_admin() || is_network_admin() ) {
 			}
 			
 			$diskstats = array(
-				'wp-content'            => $this->get_disk_stat( 'wp-content' ),
-				'Backups'               => $this->get_disk_stat( 'backups' ),
-				'&#10551;&nbsp;plugins' => $this->get_disk_stat( 'plugins' ),
-				'&#10551;&nbsp;themes'  => $this->get_disk_stat( 'themes' ),
-				'&#10551;&nbsp;uploads' => $this->get_disk_stat( 'uploads' ),
+				'&#10551;&nbsp;wp-content'	=> $this->get_disk_stat( 'wp-content' ),
+				'&#10551;&nbsp;plugins'		=> $this->get_disk_stat( 'plugins' ),
+				'&#10551;&nbsp;themes' 		=> $this->get_disk_stat( 'themes' ),
+				'&#10551;&nbsp;uploads'		=> $this->get_disk_stat( 'uploads' ),
 			);
 			
 			echo '<div id="wpnet-diskstats" class="wpnet-disk-details" style="display:none;">';
@@ -887,7 +878,7 @@ if ( is_admin() || is_network_admin() ) {
 			
 			printf(
 				'<p class="note">%s</p>',
-				esc_html__( 'Disk usage information updated every 2 hours', 'wpnet' )
+				esc_html__( 'Disk usage data updated every 2 hours', 'wpnet' )
 			);
 			
 			echo '</div>';
