@@ -4,7 +4,7 @@
  * Description: Initialise the WP NET mu-plugin library which connects WordPress to WP NET client management services, implements various tweaks and creates the WP NET Dashboard Widgets. If you remove this plugin it will be automatically reinstalled during routine maintenance.
  * Author: WP NET
  * Author URI: https://wpnet.nz
- * Version: 1.7.1
+ * Version: 1.7.4
  * Requires at least: 5.8
  * Requires PHP: 7.4
  */
@@ -68,11 +68,6 @@ $WPNET_Init = new WPNET_Init();
  * Handles WP Admin and plugin branding customizations
  */
 class WPNET_WP_Admin_Branding {
-	
-	/**
-	 * Base64 encoded WP NET logo
-	 */
-	private const LOGO_SMALL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAASCAYAAAAHWr00AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAABQVJREFUeNrkV1toHFUYPnPZTZtUm2pMQlswtJW2WLPRXIx90IqCooIW6ouKSAUVQcEHfRG0LYIX+tYXKz5IjeKDEC/4YF9ispXYSExtLGjrrbYIbdo0t232MjPH75/9x/3n7Gwukjd/+HbnXOac8/3XM9bQ0NANk5OTrm3biuUyUFRxaQIcIAA84IoxngKaAVrEAnzgKjAFaJrge55qbm61tnX2NPqBtsNZFZkO19X8dllov0a1EqLLf411zrTb19d3YHx8fE8qlYqGXwXeE9OvB4aBa5lwAdgF/Cnm7AEOGYTngQlgDOgrFgoD7T29qy6UWo6en8mtd+0Y4wHgCYPwrcDnK8JX07JaH965+SEXRH9Ip9PPCcJ3G4R3AFuMNToNwrtYMaZs5IPvtbR+xXHdg5eL3saLea81FSf8OHAYhLOCcD2wfiUIB5osoVVJqzRZZIitEUkHu1MkPQlr3GG0b1vCvm8BvY5lzZF1nWrsN9pFJ3neshHtB13aLg7xK3AayPDBNgNtwG/c7k04vFQCxe5W0SbLPwXcBLwNXMf9pNxHOSSShDzrPuBrbvvGOMX5i5wbasnzvE4kHwP9IpJ/cXnh44Iw+XY3E65jlzTlFnZhSnA3A9eIsW+AQUYb54RI2ihheYGWJNaK5LIPZjhaSTMxyQNHFvGieyVhGHXUtqxP5QSX/7PAM6J/J/AJsAm4kfuuctJaw9lzB5PqNjbNiue1csCyrPnW+pQOvLSCa1Mm+RK/XWC3jQn3ovsRHLJfI9ME8XUb8M5j+J8VfT8DZyqxqtNauNNMya+bLfmxTBgRHmFLR7HbLeI5qlcngRxwj4jbQSOeaY0TwO3AnZSsKsbTtNBY+7r6zIa0A+1ryp4ziKyDytLvi4z6OhTTX1auNLRFiv7IUO4+YH91DbJUCpobv5JTUwUf8VsZjR5/51iOhGIybVjvBLu+dGvHiOfT7AnHgHc400r3/QyEVgdkPR1mzw2+0kfwf5bbdNyMHwS7g0DPRH1laOVXI5Dtyrrl51Bd8Xr/r4U9JhMln3Xssh1i7ihwQbS38LgsHd8Dk9XbhHu/QEotBDqd9wOKL3Lxemi8pAP1ZqD0u8LKr8EDntUqVpk1XPqSEd+zsfITvlse9mBhT1enAlc8U3l6UrTv50wrLTzB69pcYx9IiF9f4BIr8hBcdwBabzg+MafOTefCUoEzaSKOc30Ay7wEKluZXgfG9qKfvKWB157A3C4rTjJvEg50RUNkdZc2qUH4O0GG5GG+Uiq+Sp7hGD7HiawFeNAgPMqu28m1/aK0Am1cwomKQYCNLBFxYal6A40PhW88Lc4S8flbV5erSpRXta1yp04mTIT+4Doc3aaiJHaKiZD8yIQpPrvE++epznF4/FTzUGVXDmEckqrCy+hoTzhb1G7H/DnRR3f+s8u5ddnGyzIpOUZsSk9ImjO6yKVgMSFFHVhgvImrySmBLwwOyyIcxXGSDIvnkRpzji3xy8WiXFIDqL9qZIFxF0gJrFpgLiG2V+gm+Xxe5XI5xR8PwzWOOSaeyV1LfCOT8u1CPEuFgqK9Slo7JcSwLjuzYyiDQpvq6lf/0UvspDZ/LZUTWjabVfgeVvw97PKFQZIpiOwbyV0cw4FIKIMJ39GVG4nvq6bmFnvN9kym4AV1HMJTfFuSdwbFucFdAsF5zimRbOK7fSR/hYmOM/f2xtVkcq3+T/KPAAMAZkAPvShYUOUAAAAASUVORK5CYII=';
 	
 	/**
 	 * Constructor - sets up hooks
@@ -145,10 +140,10 @@ class WPNET_WP_Admin_Branding {
 	 */
 	public function wpnet_dashboard_footer(): string {
 		return sprintf(
-			'<span id="footer-thankyou" style="font-style:normal"><a target="_blank" rel="noopener" href="%s" title="%s"><img style="vertical-align:bottom;" src="%s" alt="WP NET"></a> &#8211; %s</span>',
+			'<span id="footer-thankyou" style="font-style:normal"><a target="_blank" rel="noopener" href="%s" title="%s"><img style="vertical-align:bottom;" src="%s" width="60" height="18" alt="WP NET"></a> &#8211; %s</span>',
 			esc_url( 'https://wpnet.nz' ),
 			esc_attr__( 'Hosted on WP NET - WordPress Hosting & Support', 'wpnet' ),
-			esc_attr( self::LOGO_SMALL ),
+			esc_url( '//assets.wpnet.nz/wpnet-logo-med.png' ),
 			esc_html__( 'WordPress Hosting & Support', 'wpnet' )
 		);
 	}
